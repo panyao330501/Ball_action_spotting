@@ -1,0 +1,52 @@
+# 原始媒体和派生媒体
+*.mp4
+*.mkv
+*.mov
+*.avi
+*.webm
+*.wav
+*.mp3
+/frames/
+/data/
+/artifacts/
+/outputs/
+
+# 模型权重和提取特征
+/weights/
+/checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.npy
+*.npz
+
+# 本地保存的上游仓库
+/third_party/
+
+# Python 和 Conda
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.conda/
+env/
+venv/
+.venv/
+
+# 本地配置和敏感信息
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# IDE 和操作系统文件
+.idea/
+.vscode/
+.obsidian/
+.DS_Store
+Thumbs.db
