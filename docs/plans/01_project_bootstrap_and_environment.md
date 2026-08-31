@@ -24,7 +24,7 @@
 
 - `ssh chiron` 可通过已配置的密钥连接。
 - 远端身份为 `y_pan@chiron`。
-- `/work7/y_pan/Code_repo/Ball_action_spotting/` 已存在且为空，目前不是 Git 仓库。
+- `/work7/y_pan/Code_repo/Ball_action_spotting/` 已从 GitHub 检出，并配置了相同的 `origin`。
 - 可见 8 张 NVIDIA RTX A6000，每张约 49,140 MiB。
 - FFmpeg 6.1.1 和 Git 2.43.0 可用。
 - 已测试的非交互和登录 Shell 均未发现 Conda 和 Python。
@@ -39,9 +39,9 @@
 - [x] 使用默认分支 `main` 初始化本地仓库。
 - [x] 添加 GitHub 远端并验证其可访问。
 - [x] 检查忽略规则，确认 MP4 被排除。
-- [ ] 提交并推送文档基线。
-- [ ] 将 GitHub 仓库克隆到现有空远端目录。
-- [ ] 验证本地和远端检出相同提交 SHA。
+- [x] 提交并推送文档基线。
+- [x] 将 GitHub 仓库克隆到现有空远端目录。
+- [x] 验证本地和远端检出相同提交 SHA。
 
 不得使用普通 Git 或 Git LFS 添加源视频，除非后续决策明确批准；不得保存凭证；GitHub 是代码、配置和文档同步的事实来源。
 

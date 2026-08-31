@@ -25,3 +25,10 @@
 - 保留路径、命令、环境名、字段名和标准标签的英文精确拼写。
 - 在 `AGENTS.md` 中新增“工作文档正文使用中文”的持续维护规则。
 
+## 2026-08-31——建立 GitHub 双端同步
+
+- 将 GitHub 远端确定为 `https://github.com/panyao330501/Ball_action_spotting.git`。
+- 在本地初始化 `main` 分支并验证源 MP4 与 `.obsidian/` 均未进入版本控制。
+- 创建并推送首次文档提交 `ebf1e17`。
+- 在 `chiron` 的 `/work7/y_pan/Code_repo/Ball_action_spotting/` 完成克隆。
+- 验证本地与远端首次检出均指向提交 `ebf1e17`，且 `origin` 地址一致。

@@ -57,7 +57,7 @@ cd /work7/y_pan/Code_repo/Ball_action_spotting/
 
 已确认 GitHub 远端为 `https://github.com/panyao330501/Ball_action_spotting.git`。
 
-### 初始化本地仓库——模板
+### 初始化本地仓库——已验证
 
 ```powershell
 git init -b main
@@ -67,7 +67,7 @@ git status --short --ignored
 
 首次提交前确认 MP4 显示为已忽略，而不是已暂存。
 
-### 克隆到现有空远端目录——模板
+### 克隆到现有空远端目录——已验证
 
 ```powershell
 ssh chiron "git clone https://github.com/panyao330501/Ball_action_spotting.git /work7/y_pan/Code_repo/Ball_action_spotting"
