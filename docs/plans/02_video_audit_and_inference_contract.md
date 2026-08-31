@@ -1,8 +1,8 @@
 # 步骤 02——视频审计和推理契约
 
-状态：进行中  
-开始日期：2026-08-31  
-前置步骤：`01_project_bootstrap_and_environment`（视频传输和远端校验仍并行进行）  
+状态：进行中
+开始日期：2026-08-31
+前置步骤：`01_project_bootstrap_and_environment`（视频传输和远端校验仍并行进行）
 后续步骤：`03_model_acquisition_and_custom_video_adapter`
 
 ## 目标
