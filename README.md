@@ -17,3 +17,7 @@
 
 输入视频、模型权重、预测结果和生成视频均被有意排除在 Git 之外。
 
+Conda 环境定义：
+
+- `environment-viz.yml`：本地视频检查、可视化和测试环境。
+- `environment-infer.yml`：`chiron` 上的 GPU 推理环境。

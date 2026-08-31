@@ -1,0 +1,15 @@
+name: ballspot-viz
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - ffmpeg>=6.1,<8
+  - opencv>=4.9,<5
+  - numpy>=1.26,<3
+  - pandas>=2.2,<3
+  - pillow>=10,<13
+  - pyyaml>=6,<7
+  - matplotlib>=3.8,<4
+  - tqdm>=4.65,<5
+  - pytest>=8,<10
+

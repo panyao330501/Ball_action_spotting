@@ -79,6 +79,8 @@
 | `docs/runbooks/commands.md` | 本地、SSH、GitHub 同步、传输、推理、可视化和验证命令 | 命令或路径变化时维护；必须区分模板与已验证命令 |
 | `docs/decisions/decision_log.md` | 架构和工作流决策、理由及影响 | 形成或推翻重要决策时追加或声明替代关系 |
 | `docs/data/label_and_artifact_contract.md` | 标签语义、时间基准、可见性、事件结构和产物布局 | 结构或标签定义变化时维护；破坏性变化必须升级版本 |
+| `environment-viz.yml` | 本地视频检查、可视化和测试的 Conda 环境定义 | 本地依赖或 Python 兼容范围变化时维护 |
+| `environment-infer.yml` | 远端 GPU 推理及上游模型依赖的 Conda 环境定义 | 模型、PyTorch、CUDA 或解码方案变化时维护 |
 | `.gitignore` | 防止大媒体、权重、输出、环境和密钥进入 Git | 新增生成文件或敏感路径时维护 |
 
 新增工作文档时，必须在同一次修改中把它加入本地图。
