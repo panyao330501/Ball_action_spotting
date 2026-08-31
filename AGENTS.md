@@ -26,8 +26,8 @@
 
 ## 当前执行状态
 
-- 当前步骤：`01_project_bootstrap_and_environment`
-- 当前步骤计划：`docs/plans/01_project_bootstrap_and_environment.md`
+- 当前步骤：`02_video_audit_and_inference_contract`
+- 当前步骤计划：`docs/plans/02_video_audit_and_inference_contract.md`
 - 已完成部分：
   - 已创建项目文档结构。
   - 已确认本地输入视频存在。
@@ -42,9 +42,13 @@
   - 已验证本地和远端可检出相同提交。
   - 已创建并测试本地 `ballspot-viz` Conda 环境。
   - 已创建并测试远端 `ballspot-infer` Conda 环境及 CUDA 张量运算。
+  - 已确认源视频从开球开始，完整处理区间为 `0.000`～`566.500` 秒，不再裁剪。
+  - 已记录源视频 SHA-256、编码参数并完成代表性抽帧检查。
+  - 已固定 2023 SoccerNet Ball Action Spotting 冠军方案的上游源码提交，并确认其 25 FPS / 1280×736 输入契约。
 - 未完成部分：
   - 尚未完成视频的本地到远端传输和校验和比对。
-  - 尚未获取模型代码和预训练权重。
+  - 尚未获取经校验的预训练权重。
+  - 尚未生成远端 25 FPS 全时长推理代理视频。
 
 当前步骤发生变化，或未完成事项被完成、新增、删除时，必须更新本节。
 
@@ -76,12 +80,15 @@
 | `README.md` | 面向项目成员的入口和工作流摘要 | 设置方式、入口或交付物变化时维护 |
 | `docs/plans/overall_plan.md` | 稳定的端到端实施计划和阶段退出标准 | 仅在计划发生实质变化时修改，不作为进度日志 |
 | `docs/plans/01_project_bootstrap_and_environment.md` | 仓库、Conda、SSH 和资产准备的详细计划与清单 | 步骤 01 活动期间持续维护；完成后冻结，事实纠错除外 |
+| `docs/plans/02_video_audit_and_inference_contract.md` | 源视频审计、无裁剪边界、模型输入重采样和时间对齐的详细计划 | 步骤 02 活动期间持续维护；完成后冻结，事实纠错除外 |
 | `docs/milestone.md` | 已完成工作和重大项目变化的追加式记录 | 完成步骤、重要交付物或重大变化后追加 |
 | `docs/testing/test_strategy.md` | 测试层级、质量门槛、验收标准和证据要求 | 架构、接口或验收标准变化时维护 |
 | `docs/testing/test_log.md` | 测试命令、环境、结果和产物引用的时间顺序记录 | 每次有意义的测试后追加，不得静默改写历史结果 |
 | `docs/runbooks/commands.md` | 本地、SSH、GitHub 同步、传输、推理、可视化和验证命令 | 命令或路径变化时维护；必须区分模板与已验证命令 |
 | `docs/decisions/decision_log.md` | 架构和工作流决策、理由及影响 | 形成或推翻重要决策时追加或声明替代关系 |
 | `docs/data/label_and_artifact_contract.md` | 标签语义、时间基准、可见性、事件结构和产物布局 | 结构或标签定义变化时维护；破坏性变化必须升级版本 |
+| `configs/poc_video.yaml` | 本次 PoC 的源视频、完整处理区间和 25 FPS 推理输入配置 | 输入身份、时间边界或推理预处理变化时维护 |
+| `data/metadata/video_metadata.json` | 本地生成的源视频技术元数据与 SHA-256 | 源视频更换或重新测量时重建；不提交 Git |
 | `environment-viz.yml` | 本地视频检查、可视化和测试的 Conda 环境定义 | 本地依赖或 Python 兼容范围变化时维护 |
 | `environment-infer.yml` | 远端 GPU 推理及上游模型依赖的 Conda 环境定义 | 模型、PyTorch、CUDA 或解码方案变化时维护 |
 | `.gitignore` | 防止大媒体、权重、输出、环境和密钥进入 Git | 新增生成文件或敏感路径时维护 |

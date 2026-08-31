@@ -1,6 +1,6 @@
 # 步骤 01——项目、仓库和环境准备
 
-状态：进行中  
+状态：与步骤 02 并行进行
 开始日期：2026-08-31  
 涉及范围：本地工作站和 `chiron` 基础设施  
 完成后的下一步骤：`02_video_audit_and_inference_contract`
@@ -64,7 +64,7 @@
 
 - [x] 在不暴露敏感信息的前提下检查常见用户级 Conda 位置和 Shell 初始化文件。
 - [x] 发现并复用 `/work7/y_pan/anaconda3`，无需重复安装 Miniconda。
-- [ ] 获取候选上游模型源码并检查真实 Python、PyTorch 和 CUDA 要求。
+- [x] 获取用户选定的上游模型源码并检查真实 Python、PyTorch 和 CUDA 要求。
 - [x] 根据上游依赖和当前兼容性创建 `environment-infer.yml`。
 - [x] 安装 PyTorch 2.0.1、CUDA 11.8 和上游固定 Python 依赖。
 - [x] 验证 `torch.cuda.is_available()`、GPU 数量、设备和小型张量运算。
@@ -92,7 +92,7 @@ third_party/           # 固定的上游检出
 
 ### 5. 大文件传输和完整性
 
-- [ ] 计算源视频本地 SHA-256。
+- [x] 计算源视频本地 SHA-256：`08c487dad084dbc12fbcf760d0ac3d7865fb0092cea767010c75a4b8a6f511be`。
 - [ ] 通过 `scp` 或 `rsync` 单独传输到 `chiron`。
 - [ ] 计算远端 SHA-256 并精确比对。
 - [ ] 在步骤 02 的元数据中记录哈希、字节数、路径和传输日期。
@@ -120,5 +120,5 @@ third_party/           # 固定的上游检出
 
 ## 当前阻塞和待决定事项
 
-- 上游模型源码和权重尚未获取，精确提交仍需在步骤 03 固定。
+- 上游源码已检出到远端忽略目录，提交为 `9c471531c62b51bd0cfe6170b74d035da44c88ed`；权重仍未获取。
 - 上游 NVIDIA VideoProcessingFramework 未放入当前 Conda 环境；初始 PoC 使用 FFmpeg/OpenCV 解码，步骤 03 再决定是否接入 VPF。

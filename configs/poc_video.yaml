@@ -1,0 +1,28 @@
+# 本次 PoC 的视频和时间契约。路径由运行端覆盖，不提交任何媒体。
+schema_version: 1
+source:
+  basename: "vs_飛鳥FC_20260704_trimmed_0930.mp4"
+  sha256: "08c487dad084dbc12fbcf760d0ac3d7865fb0092cea767010c75a4b8a6f511be"
+  duration_sec: 566.5
+  width: 1280
+  height: 720
+  fps: 30.0
+  kickoff_offset_sec: 0.0
+  interval_sec: [0.0, 566.5]
+inference_input:
+  basename: "vs_飛鳥FC_20260704_trimmed_0930_25fps_infer.mp4"
+  fps: 25.0
+  width: 1280
+  height: 720
+  audio: false
+  generation: "全时长、无裁剪；ffmpeg fps=25；不缩放"
+model_preprocess:
+  color: "grayscale"
+  padded_width: 1280
+  padded_height: 736
+  padding: "constant_black_centered"
+  frame_stack_size: 15
+  frame_stack_step: 2
+time_mapping:
+  inference_frame_to_source_sec: "frame_index / 25.0"
+  max_round_trip_error_sec: 0.04

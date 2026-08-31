@@ -103,7 +103,7 @@ ssh chiron "git -C /work7/y_pan/Code_repo/Ball_action_spotting rev-parse HEAD"
 
 视频、权重、原始分数和渲染视频不通过 GitHub 传输。
 
-### 计算本地视频校验和——模板
+### 计算本地视频校验和——已验证
 
 ```powershell
 Get-FileHash -Algorithm SHA256 -LiteralPath 'C:\Code\Ball_action_spotting\vs_飛鳥FC_20260704_trimmed_0930.mp4'
@@ -152,19 +152,29 @@ ssh chiron 'export CRYPTOGRAPHY_OPENSSL_NO_LEGACY=1; export CUDA_VISIBLE_DEVICES
 ssh chiron 'export CRYPTOGRAPHY_OPENSSL_NO_LEGACY=1; /work7/y_pan/anaconda3/bin/conda env export -n ballspot-infer --no-builds'
 ```
 
-## 6. 视频检查——模板
+## 6. 视频检查和 25 FPS 推理代理
 
-本地 `ballspot-viz` 创建后：
+### 本地检查——已验证
 
 ```powershell
 & 'C:\ProgramData\miniconda3\Scripts\conda.exe' run -n ballspot-viz ffprobe -v error -show_format -show_streams -of json 'C:\Code\Ball_action_spotting\vs_飛鳥FC_20260704_trimmed_0930.mp4'
 ```
 
-远端：
+### 远端检查——模板
 
 ```powershell
 ssh chiron "ffprobe -v error -show_format -show_streams -of json '/work7/y_pan/Code_repo/Ball_action_spotting/data/raw/vs_飛鳥FC_20260704_trimmed_0930.mp4'"
 ```
+
+### 生成全时长 25 FPS 推理代理——模板
+
+该命令不裁剪规范源；输出仅保留视频流，因为最终可视化仍使用原始带音频 MP4。先确认目标文件不存在，避免意外覆盖。
+
+```powershell
+ssh chiron 'source="/work7/y_pan/Code_repo/Ball_action_spotting/data/raw/vs_飛鳥FC_20260704_trimmed_0930.mp4"; proxy="/work7/y_pan/Code_repo/Ball_action_spotting/data/raw/vs_飛鳥FC_20260704_trimmed_0930_25fps_infer.mp4"; test ! -e "$proxy" && /work7/y_pan/anaconda3/bin/conda run -n ballspot-infer ffmpeg -i "$source" -map 0:v:0 -an -vf fps=25 -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p "$proxy"'
+```
+
+生成后验证其 FPS、时长和帧数；预期为 25 FPS、1280×720、约 566.5 秒。模型内部再补边至 1280×736。
 
 ## 7. 推理、后处理和可视化
 
