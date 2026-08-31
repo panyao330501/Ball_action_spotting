@@ -16,7 +16,7 @@
 & 'C:\ProgramData\miniconda3\Scripts\conda.exe' info --base
 ```
 
-### 创建可视化环境——模板
+### 创建可视化环境——已验证
 
 在提交 `environment-viz.yml` 后执行：
 
@@ -132,18 +132,24 @@ scp -r 'chiron:/work7/y_pan/Code_repo/Ball_action_spotting/artifacts/inference/<
 
 ## 5. 远端 Conda 和 GPU 检查
 
-远端 Conda 尚未解决。创建 `ballspot-infer` 后使用以下命令。
+远端 Conda 位于 `/work7/y_pan/anaconda3/bin/conda`。由于该安装的部分插件存在 OpenSSL 兼容警告，命令显式设置 `CRYPTOGRAPHY_OPENSSL_NO_LEGACY=1`，环境求解使用 libmamba。
 
-### 环境冒烟检查——模板
+### 创建推理环境——已验证
 
 ```powershell
-ssh chiron "conda run -n ballspot-infer python -c 'import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))'"
+ssh chiron 'export CRYPTOGRAPHY_OPENSSL_NO_LEGACY=1; /work7/y_pan/anaconda3/bin/conda env create --solver libmamba --file /work7/y_pan/Code_repo/Ball_action_spotting/environment-infer.yml'
+```
+
+### 环境冒烟检查——已验证
+
+```powershell
+ssh chiron 'export CRYPTOGRAPHY_OPENSSL_NO_LEGACY=1; export CUDA_VISIBLE_DEVICES=0; /work7/y_pan/anaconda3/bin/conda run -n ballspot-infer python -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0))"'
 ```
 
 ### 导出环境快照——模板
 
 ```powershell
-ssh chiron "conda env export -n ballspot-infer --no-builds"
+ssh chiron 'export CRYPTOGRAPHY_OPENSSL_NO_LEGACY=1; /work7/y_pan/anaconda3/bin/conda env export -n ballspot-infer --no-builds'
 ```
 
 ## 6. 视频检查——模板

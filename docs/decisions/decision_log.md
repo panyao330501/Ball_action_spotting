@@ -42,3 +42,10 @@
 - 理由：滞后或静止的单机位可能没有拍到动作证据。
 - 影响：报告必须区分输入可观测性和模型行为。
 
+## D-006——初始 Conda 推理环境暂不编译 VPF
+
+- 日期：2026-08-31
+- 状态：已接受，步骤 03 重新评估
+- 决策：`ballspot-infer` 安装上游 Python/PyTorch 依赖，但暂不编译 NVIDIA VideoProcessingFramework；初始自定义视频适配使用 FFmpeg/OpenCV 解码。
+- 理由：上游通过定制 Docker 镜像提供 VPF，而当前项目明确使用 Conda；约 10 分钟 PoC 可以先采用 CPU 解码和 GPU 推理，降低环境准备风险。
+- 影响：步骤 03 必须验证吞吐量和帧时间准确性；只有确有性能需求时才接入 VPF。

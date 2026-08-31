@@ -32,3 +32,13 @@
 - 创建并推送首次文档提交 `ebf1e17`。
 - 在 `chiron` 的 `/work7/y_pan/Code_repo/Ball_action_spotting/` 完成克隆。
 - 验证本地与远端首次检出均指向提交 `ebf1e17`，且 `origin` 地址一致。
+
+## 2026-08-31——创建本地和远端 Conda 环境
+
+- 新增并提交 `environment-viz.yml` 和 `environment-infer.yml`。
+- 在 `C:\Users\logan\.conda\envs\ballspot-viz` 创建本地可视化环境。
+- 本地环境成功导入 OpenCV、NumPy、pandas、Pillow、PyYAML 和 Matplotlib，并通过日文视频路径解码测试。
+- 发现并复用 `chiron` 的 `/work7/y_pan/anaconda3`，未重复安装 Conda。
+- 在 `/home/y_pan/workspace7/anaconda3/envs/ballspot-infer` 创建远端推理环境。
+- 远端环境安装 PyTorch 2.0.1、CUDA 11.8、OpenCV 4.7.0、NumPy 1.24.3 和上游模型 Python 依赖。
+- 第 0 张 RTX A6000 上的 CUDA 张量运算及环境内 FFmpeg 7.1.1 测试通过。

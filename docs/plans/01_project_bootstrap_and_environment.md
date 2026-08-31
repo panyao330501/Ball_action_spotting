@@ -27,7 +27,7 @@
 - `/work7/y_pan/Code_repo/Ball_action_spotting/` 已从 GitHub 检出，并配置了相同的 `origin`。
 - 可见 8 张 NVIDIA RTX A6000，每张约 49,140 MiB。
 - FFmpeg 6.1.1 和 Git 2.43.0 可用。
-- 已测试的非交互和登录 Shell 均未发现 Conda 和 Python。
+- Conda 位于 `/work7/y_pan/anaconda3/bin/conda`，但没有加入已测试 Shell 的 `PATH`；其实际环境根目录解析为 `/home/y_pan/workspace7/anaconda3/envs/`。
 
 ## 工作包
 
@@ -49,11 +49,11 @@
 
 目标环境：`ballspot-viz`
 
-- [ ] 确定依赖后创建并提交 `environment-viz.yml`。
-- [ ] 固定 Python 版本和 Conda 频道。
-- [ ] 按实现需要加入 FFmpeg、OpenCV、NumPy、pandas、Pillow、PyYAML、绘图和测试工具。
-- [ ] 通过 `C:\ProgramData\miniconda3\Scripts\conda.exe` 创建环境。
-- [ ] 验证 Python、FFmpeg、OpenCV 解码和日文文件名路径访问。
+- [x] 确定依赖后创建并提交 `environment-viz.yml`。
+- [x] 固定 Python 版本和 Conda 频道。
+- [x] 加入 FFmpeg、OpenCV、NumPy、pandas、Pillow、PyYAML、绘图和测试工具。
+- [x] 通过 `C:\ProgramData\miniconda3\Scripts\conda.exe` 创建环境。
+- [x] 验证 Python、FFmpeg、OpenCV 解码和日文文件名路径访问。
 - [ ] 导出诊断用环境快照，但不替换人工维护的环境文件。
 
 禁止把项目依赖安装到 `base`。
@@ -62,13 +62,13 @@
 
 目标环境：`ballspot-infer`
 
-- [ ] 在不暴露敏感信息的前提下检查常见用户级 Conda 位置和 Shell 初始化文件。
-- [ ] 如果确实没有 Conda，确认后在 Git 仓库之外安装用户级 Miniconda。
+- [x] 在不暴露敏感信息的前提下检查常见用户级 Conda 位置和 Shell 初始化文件。
+- [x] 发现并复用 `/work7/y_pan/anaconda3`，无需重复安装 Miniconda。
 - [ ] 获取候选上游模型源码并检查真实 Python、PyTorch 和 CUDA 要求。
-- [ ] 根据固定上游提交和权重兼容性创建 `environment-infer.yml`。
-- [ ] 安装与服务器驱动兼容的 CUDA PyTorch。
-- [ ] 验证 `torch.cuda.is_available()`、GPU 数量、设备和小型张量运算。
-- [ ] 验证 Conda 推理流程能够调用 FFmpeg 解码。
+- [x] 根据上游依赖和当前兼容性创建 `environment-infer.yml`。
+- [x] 安装 PyTorch 2.0.1、CUDA 11.8 和上游固定 Python 依赖。
+- [x] 验证 `torch.cuda.is_available()`、GPU 数量、设备和小型张量运算。
+- [x] 验证 Conda 推理流程能够调用 FFmpeg 7.1.1。
 
 首次冒烟只使用一张 A6000，不假设八卡并行对 10 分钟视频有收益。
 
@@ -100,12 +100,12 @@ third_party/           # 固定的上游检出
 
 ### 6. 端到端基础设施冒烟测试
 
-- [ ] 从本地向 GitHub 推送小型文档修改。
-- [ ] 在 `chiron` 拉取并比较提交 SHA。
-- [ ] 使用 `conda run -n ballspot-viz` 执行本地命令。
-- [ ] 使用 `conda run -n ballspot-infer` 执行远端 CUDA 冒烟命令。
+- [x] 从本地向 GitHub 推送小型文档修改。
+- [x] 在 `chiron` 拉取并比较提交 SHA。
+- [x] 使用 `conda run -n ballspot-viz` 执行本地命令。
+- [x] 使用 `conda run -n ballspot-infer` 执行远端 CUDA 冒烟命令。
 - [ ] 在两端分别读取一段短视频。
-- [ ] 将证据写入 `docs/testing/test_log.md`。
+- [x] 将环境创建和冒烟测试证据写入 `docs/testing/test_log.md`。
 
 ## 退出标准
 
@@ -120,5 +120,5 @@ third_party/           # 固定的上游检出
 
 ## 当前阻塞和待决定事项
 
-- 远端 Conda 的位置或安装方案尚未解决。
-- 上游模型提交和依赖版本将在仓库准备完成后确定。
+- 上游模型源码和权重尚未获取，精确提交仍需在步骤 03 固定。
+- 上游 NVIDIA VideoProcessingFramework 未放入当前 Conda 环境；初始 PoC 使用 FFmpeg/OpenCV 解码，步骤 03 再决定是否接入 VPF。

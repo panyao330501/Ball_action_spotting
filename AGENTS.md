@@ -9,12 +9,15 @@
 - 本地工作区：`C:\Code\Ball_action_spotting`
 - 本地输入视频：`C:\Code\Ball_action_spotting\vs_飛鳥FC_20260704_trimmed_0930.mp4`
 - 本地环境管理器：位于 `C:\ProgramData\miniconda3` 的 Conda
+- 本地可视化环境：`C:\Users\logan\.conda\envs\ballspot-viz`
 - 本地职责：视频检查、适合在本机执行的事件后处理、叠加渲染、集锦生成和主观质检
 - 推理主机：SSH 别名 `chiron`
 - 已验证的远端身份：`y_pan@chiron`
 - 远端工作区：`/work7/y_pan/Code_repo/Ball_action_spotting/`
 - 已验证的远端算力：8 张 NVIDIA RTX A6000，每张约 48 GB
 - 远端职责：模型环境、权重保存、GPU 推理和原始预测生成
+- 远端 Conda：`/work7/y_pan/anaconda3/bin/conda`
+- 远端推理环境：`/home/y_pan/workspace7/anaconda3/envs/ballspot-infer`
 - 源代码同步：GitHub 仅同步代码、配置和文档
 - GitHub 远端：`https://github.com/panyao330501/Ball_action_spotting.git`
 - 大文件：视频、权重、特征和生成产物不得提交到 GitHub，必须单独传输并校验哈希
@@ -37,9 +40,9 @@
   - 已验证源 MP4 被 `.gitignore` 排除。
   - 已向 GitHub 推送文档基线，并在 `chiron` 完成远端检出。
   - 已验证本地和远端可检出相同提交。
+  - 已创建并测试本地 `ballspot-viz` Conda 环境。
+  - 已创建并测试远端 `ballspot-infer` Conda 环境及 CUDA 张量运算。
 - 未完成部分：
-  - 尚未创建和测试本地可视化 Conda 环境。
-  - 远端非交互和登录 Shell 尚未发现 Conda，需要定位或安装。
   - 尚未完成视频的本地到远端传输和校验和比对。
   - 尚未获取模型代码和预训练权重。
 

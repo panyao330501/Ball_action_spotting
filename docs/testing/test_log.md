@@ -54,3 +54,29 @@ Git 提交：
   - 两端 `origin` 均为 `https://github.com/panyao330501/Ball_action_spotting.git`。
   - 源 MP4 和 `.obsidian/` 未进入提交。
 - 后续动作：推送本次状态文档更新，并在 `chiron` 使用 `pull --ff-only` 验证日常同步流程。
+
+## 2026-08-31——T-INFRA-002 本地 Conda 和视频解码
+
+- 状态：通过
+- 端点和环境：本地 `C:\Users\logan\.conda\envs\ballspot-viz`
+- 输入和配置：`environment-viz.yml`；源 MP4
+- 观察结果：
+  - Python 3.11 环境创建成功。
+  - OpenCV 4.12.0、NumPy 2.4.6 及可视化依赖导入成功。
+  - 日文路径视频可打开，首帧形状为 `720 x 1280 x 3`。
+  - 视频为 H.264、1280×720、30 FPS、16,995 帧、566.5 秒；AAC 音轨存在。
+  - 环境内 FFprobe 完成元数据读取。
+- 后续动作：步骤 02 将这些信息写入正式视频元数据产物，并人工确认开球偏移。
+
+## 2026-08-31——T-INFRA-003 远端 Conda 和 CUDA
+
+- 状态：通过
+- 端点和环境：`chiron`，`/home/y_pan/workspace7/anaconda3/envs/ballspot-infer`
+- 输入和配置：`environment-infer.yml`；`CUDA_VISIBLE_DEVICES=0`
+- 观察结果：
+  - PyTorch 2.0.1、PyTorch CUDA 11.8、OpenCV 4.7.0、NumPy 1.24.3 及上游 Python 依赖导入成功。
+  - `torch.cuda.is_available()` 为真。
+  - 隔离后可见一张 NVIDIA RTX A6000。
+  - GPU 矩阵运算返回预期结果 `[[5.0, 14.0], [14.0, 50.0]]`。
+  - 环境内 FFmpeg 7.1.1 可执行。
+- 后续动作：获取模型源码和权重后执行 60～90 秒模型推理冒烟测试。
