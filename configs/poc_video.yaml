@@ -11,11 +11,13 @@ source:
   interval_sec: [0.0, 566.5]
 inference_input:
   basename: "vs_飛鳥FC_20260704_trimmed_0930_25fps_infer.mp4"
+  sha256: "b40d98c19f3d4dc172ab91a4e5900921ef8e9982c7d59efd0630d745c47e3356"
+  duration_sec: 566.52
   fps: 25.0
   width: 1280
   height: 720
   audio: false
-  generation: "全时长、无裁剪；ffmpeg fps=25；不缩放"
+  generation: "全时长、无裁剪；ffmpeg fps=25；不缩放；2026-08-31 已验证"
 model_preprocess:
   color: "grayscale"
   padded_width: 1280

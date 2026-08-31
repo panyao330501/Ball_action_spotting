@@ -109,7 +109,7 @@ ssh chiron "git -C /work7/y_pan/Code_repo/Ball_action_spotting rev-parse HEAD"
 Get-FileHash -Algorithm SHA256 -LiteralPath 'C:\Code\Ball_action_spotting\vs_飛鳥FC_20260704_trimmed_0930.mp4'
 ```
 
-### 传输源视频——模板
+### 传输源视频——已验证
 
 仓库准备完成后创建远端运行目录：
 
@@ -166,7 +166,7 @@ ssh chiron 'export CRYPTOGRAPHY_OPENSSL_NO_LEGACY=1; /work7/y_pan/anaconda3/bin/
 ssh chiron "ffprobe -v error -show_format -show_streams -of json '/work7/y_pan/Code_repo/Ball_action_spotting/data/raw/vs_飛鳥FC_20260704_trimmed_0930.mp4'"
 ```
 
-### 生成全时长 25 FPS 推理代理——模板
+### 生成全时长 25 FPS 推理代理——已验证
 
 该命令不裁剪规范源；输出仅保留视频流，因为最终可视化仍使用原始带音频 MP4。先确认目标文件不存在，避免意外覆盖。
 
@@ -174,7 +174,7 @@ ssh chiron "ffprobe -v error -show_format -show_streams -of json '/work7/y_pan/C
 ssh chiron 'source="/work7/y_pan/Code_repo/Ball_action_spotting/data/raw/vs_飛鳥FC_20260704_trimmed_0930.mp4"; proxy="/work7/y_pan/Code_repo/Ball_action_spotting/data/raw/vs_飛鳥FC_20260704_trimmed_0930_25fps_infer.mp4"; test ! -e "$proxy" && /work7/y_pan/anaconda3/bin/conda run -n ballspot-infer ffmpeg -i "$source" -map 0:v:0 -an -vf fps=25 -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p "$proxy"'
 ```
 
-生成后验证其 FPS、时长和帧数；预期为 25 FPS、1280×720、约 566.5 秒。模型内部再补边至 1280×736。
+已验证代理的 FPS、时长和帧数：25 FPS、1280×720、14,163 帧、566.520 秒。模型内部再补边至 1280×736。
 
 ## 7. 推理、后处理和可视化
 
