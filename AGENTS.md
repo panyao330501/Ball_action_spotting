@@ -26,8 +26,8 @@
 
 ## 当前执行状态
 
-- 当前步骤：`05_local_visualization_pipeline`
-- 当前步骤计划：`docs/plans/05_local_visualization_pipeline.md`
+- 当前步骤：`06_visibility_and_subjective_review`
+- 当前步骤计划：`docs/plans/06_visibility_and_subjective_review.md`
 - 已完成部分：
   - 已创建项目文档结构。
   - 已确认本地输入视频存在。
@@ -50,8 +50,10 @@
   - 已在单张 A6000 成功加载 fold 0 权重，确认其为 2 类、33 帧、步长 2、`pad_normalize` 模型。
   - 已实现独立 25 FPS 推理入口和 Slurm 作业脚本。
   - 已完成两次 0～90 秒 7-fold Slurm 冒烟推理，原始分数和文件 SHA-256 均完全一致。
+  - 已完成 566.5 秒本地叠加渲染与 58 个事件的上下文集锦；两份视频均通过完整解码、帧率/时长/音轨和代表性抽帧质检。
 - 未完成部分：
-  - 尚未将本地事件候选渲染为带标签、时间码和置信度的完整审查视频及事件集锦。
+  - 尚未对 58 个候选逐一标记可见性与主观审查状态。
+  - 尚未连续观看完整区间并记录明显可见漏检、画外不可观测区间和主要失败模式。
 
 当前步骤发生变化，或未完成事项被完成、新增、删除时，必须更新本节。
 
@@ -88,6 +90,7 @@
 | `docs/plans/03_model_acquisition_and_custom_video_adapter.md` | 冠军方案权重获取、自定义视频适配器和短片推理冒烟的详细计划 | 步骤 03 活动期间持续维护；完成后冻结，事实纠错除外 |
 | `docs/plans/04_full_remote_inference_and_postprocessing.md` | 完整视频的 Slurm 推理、原始分数验证和无损后处理的详细计划 | 步骤 04 活动期间持续维护；完成后冻结，事实纠错除外 |
 | `docs/plans/05_local_visualization_pipeline.md` | 本地事件叠加、完整审查视频、事件集锦和渲染质检的详细计划 | 步骤 05 活动期间持续维护；完成后冻结，事实纠错除外 |
+| `docs/plans/06_visibility_and_subjective_review.md` | 逐事件可见性、主观判定、连续漏检检查和失败模式汇总的详细计划 | 步骤 06 活动期间持续维护；完成后冻结，事实纠错除外 |
 | `docs/milestone.md` | 已完成工作和重大项目变化的追加式记录 | 完成步骤、重要交付物或重大变化后追加 |
 | `docs/testing/test_strategy.md` | 测试层级、质量门槛、验收标准和证据要求 | 架构、接口或验收标准变化时维护 |
 | `docs/testing/test_log.md` | 测试命令、环境、结果和产物引用的时间顺序记录 | 每次有意义的测试后追加，不得静默改写历史结果 |

@@ -232,13 +232,13 @@ ssh chiron "cd /work7/y_pan/Code_repo/Ball_action_spotting && conda run -n balls
 
 入口验证源视频和事件契约、拒绝覆盖既有运行目录，并同时生成完整叠加视频、逐事件片段、事件集锦、渲染清单与日志。
 
-### 本地全程可视化——模板
+### 本地全程可视化——已验证
 
-将 `<RUN_ID>` 替换为符合数据契约的新运行 ID；执行前确认同名产物目录不存在。
+正式运行 ID 为 `20260901_151037_2b29422_poc-video`；执行前已确认同名产物目录不存在。
 
 ```powershell
 & 'C:\Users\logan\.conda\envs\ballspot-viz\python.exe' scripts/render_visualization.py `
-  --run-id <RUN_ID> `
+  --run-id 20260901_151037_2b29422_poc-video `
   --ffmpeg 'C:\Users\logan\.conda\envs\ballspot-viz\Library\bin\ffmpeg.exe' `
   --ffprobe 'C:\Users\logan\.conda\envs\ballspot-viz\Library\bin\ffprobe.exe'
 ```
@@ -249,4 +249,4 @@ ssh chiron "cd /work7/y_pan/Code_repo/Ball_action_spotting && conda run -n balls
 & 'C:\ProgramData\miniconda3\Scripts\conda.exe' run -n ballspot-viz pytest -q
 ```
 
-全程入口成功执行后，将上述模板改为已验证命令；只有仍受支持的旧命令才保留。
+该命令同时生成完整叠加视频、58 个精确片段、事件集锦、清单和日志。重复运行必须使用新运行 ID，不能覆盖本次已验证产物。

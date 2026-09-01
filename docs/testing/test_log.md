@@ -206,3 +206,22 @@ Git 提交：
   - `smoke_20260901_step05_r3` 解决了候选丢时长问题；`r4` 固定了逐片段帧数和最终总时长；`r5` 将时间码移出原计分牌并压缩密集事件行，作为最终通过运行。
 - 证据和产物：`artifacts/visualization/smoke_20260901_step05_r5/render_manifest.json`、`qa_frames/`；`outputs/smoke_20260901_step05_r5/`
 - 后续动作：以相同入口和正式 `fast` / CRF 18 参数生成完整 566.5 秒视频及 58 事件集锦。
+
+## 2026-09-01——T-VIZ-004 全程可视化和技术质检
+
+- 状态：通过（附一次不影响产物的抽帧哈希命令失败）
+- Git 提交：`2b29422a2d79f680d2eb153cc6ff5ff1943b95e0`
+- 端点和环境：本地 `ballspot-viz`；Python 3.11；FFmpeg/FFprobe 7.1.1
+- 命令或命令手册章节：`docs/runbooks/commands.md` 的“本地全程可视化”
+- 输入和配置：规范源 SHA-256 `08c487dad084dbc12fbcf760d0ac3d7865fb0092cea767010c75a4b8a6f511be`；事件 SHA-256 `9a44494fc190fff1eef479ddd91bd7aa617ccc3613689f761d340b6dd4a11ec4`；58 个候选；`libx264 fast` / CRF 18；运行 `20260901_151037_2b29422_poc-video`
+- 观察结果：
+  - 渲染清单状态为 `completed`，记录 Pass 34、Drive 24，且明确 `spatial_boxes=false`。
+  - `annotated_full.mp4` 为 H.264 1280×720、30 FPS、16,995 帧、566.500 秒；AAC 48 kHz 双声道、26,557 帧、566.493 秒，与规范源一致。完整解码通过。
+  - `event_highlights.mp4` 为 H.264 1280×720、30 FPS、12,180 帧、406.000 秒视频流；AAC 为 406.000 秒。容器因 0.021029 秒 AAC priming 为 406.021029 秒，偏差小于一帧。完整解码通过。
+  - 58 个中间片段数量、文件顺序、视频/音频流逐一检查通过；每段为 210 帧/7.000 秒，无边界截断。
+  - 源音轨和完整视频音轨的解码 framemd5 文件 SHA-256 均为 `6777E7139976AEBBC0FB297FD32BC2249EF90E3474E5197366C35DC58AAFC46B`。
+  - 人工查看 18.000、312.600、548.000 秒抽帧：时间码准确，颜色和按时间排序正确；后段 7 事件密集簇仍在画面上半部内。检查集锦第 1、29、58 个事件标题，序号、ID、标签、置信度和源时间正确。
+  - 首次尝试用 `Get-FileHash -LiteralPath '*.jpg'` 计算抽帧哈希因 `LiteralPath` 不展开通配符而失败；随后改用 `Get-ChildItem | Get-FileHash` 成功。该辅助命令未修改任何媒体产物。
+- 证据和产物：`artifacts/visualization/20260901_151037_2b29422_poc-video/render_manifest.json`、`visualization.log`、`qa_frames/`；`outputs/20260901_151037_2b29422_poc-video/`
+- 输出 SHA-256：`annotated_full.mp4` 为 `8debb7951d0be1a09f4c4e28482f672ced45c12bfb2bb523a808a5e8fa480609`；`event_highlights.mp4` 为 `7411b90692de5f348c8e2c98a115580640188b39714491c712a33cd07b3f4006`。
+- 后续动作：步骤 06 逐一审查 58 个候选并连续观看全程，区分模型失败与画面不可观测。
