@@ -194,6 +194,22 @@ ssh chiron 'repo=/work7/y_pan/Code_repo/Ball_action_spotting; find "$repo/ball_a
 ssh chiron 'export CRYPTOGRAPHY_OPENSSL_NO_LEGACY=1; export CUDA_VISIBLE_DEVICES=0; repo=/work7/y_pan/Code_repo/Ball_action_spotting; export PYTHONPATH="$repo/third_party/ball-action-spotting"; /work7/y_pan/anaconda3/bin/conda run -n ballspot-infer python -c "import argus, src.argus_models; m=argus.load_model(\"/work7/y_pan/Code_repo/Ball_action_spotting/ball_action/experiments/ball_finetune_long_004/fold_0/model-006-0.864002.pth\", device=\"cuda:0\", optimizer=None, loss=None); print(m.params[\"nn_module\"]); print(m.params[\"frame_stack_size\"]); print(m.params[\"frame_stack_step\"]); print(m.params[\"frames_processor\"])"'
 ```
 
+### 提交 90 秒 Slurm 冒烟推理——模板
+
+执行前先同步最新代码并创建 Slurm 输出目录。该命令提交作业，不在 SSH 登录 Shell 直接运行 GPU 推理。
+
+```powershell
+ssh chiron 'mkdir -p /work7/y_pan/Code_repo/Ball_action_spotting/artifacts/inference && cd /work7/y_pan/Code_repo/Ball_action_spotting && sbatch scripts/slurm/smoke_inference.sh'
+```
+
+查询作业：
+
+```powershell
+ssh chiron 'squeue -u "$USER"'
+```
+
+作业完成后，检查 `artifacts/inference/smoke_<job_id>/manifest.json`、`scores.npz` 和对应的 Slurm `.out` / `.err` 日志。
+
 以下接口是占位模板，实际模块在对应实施步骤中确定。
 
 ### 远端推理——模板

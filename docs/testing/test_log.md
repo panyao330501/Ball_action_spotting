@@ -125,3 +125,14 @@ Git 提交：
   - 在固定上游代码和单张 A6000 上，`argus.load_model` 成功加载 fold 0，无缺失键或参数错误。
   - 实际权重参数为 `multidim_stacker`、2 类、33 帧、步长 2、`pad_normalize(size=(1280, 736))`；因此替代先前对 15 帧初始模型的实现假设。
 - 后续动作：实现独立 25 FPS 自定义视频适配器，并以 0～90 秒范围完成两次可复现的冒烟推理。
+
+## 2026-09-01——T-ADAPTER-001 推理入口静态检查
+
+- 状态：通过（附一次已解决的本地命令包装器失败）
+- 端点和环境：本地 `ballspot-viz`
+- 输入和配置：`scripts/run_custom_inference.py`、`scripts/slurm/smoke_inference.sh`、`configs/poc_video.yaml`
+- 观察结果：
+  - `python -m py_compile scripts/run_custom_inference.py` 通过；配置的 `frame_stack_size` 为已验证的 33。
+  - 首次经 `conda run ... --help` 调用失败，原因是 Windows CP932 控制台无法编码脚本当时的中文帮助文本；这不是模型或脚本逻辑错误。
+  - 将 CLI 帮助文本改为 ASCII 英文后，直接使用 `ballspot-viz` 解释器执行 `--help` 成功，静态编译和配置检查再次通过。
+- 后续动作：在 chiron 安装配置中固定的 PyYAML，并进行不占用 GPU 的上游导入检查；GPU 冒烟仅通过 Slurm 提交。
