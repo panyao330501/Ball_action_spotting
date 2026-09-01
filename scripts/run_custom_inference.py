@@ -126,7 +126,6 @@ def main() -> None:
     import argus
     import torch
     import src.argus_models  # noqa: F401  注册 Argus 自定义模块。
-    from src.frame_fetchers import OpencvFrameFetcher
     from src.predictors import MultiDimStackerPredictor
 
     if not torch.cuda.is_available():
@@ -172,19 +171,21 @@ def main() -> None:
     if decode_start < 0 or decode_end >= frame_count:
         raise RuntimeError("内部上下文边界计算错误")
 
-    frame_fetcher = OpencvFrameFetcher(args.video, gpu_id=torch.device(args.device).index or 0)
-    frame_fetcher.num_frames = frame_count
+    capture = cv2.VideoCapture(str(args.video), cv2.CAP_FFMPEG)
+    if not capture.isOpened():
+        raise RuntimeError(f"无法打开视频：{args.video}")
+    capture.set(cv2.CAP_PROP_POS_FRAMES, decode_start)
     frame_indexes: list[int] = []
     fold_scores: list[np.ndarray] = []
     started_at = time.monotonic()
 
     try:
         for frame_index in range(decode_start, decode_end + 1):
-            frame = (
-                frame_fetcher.fetch_frame(frame_index)
-                if frame_index == decode_start
-                else frame_fetcher.fetch_frame()
-            )
+            success, bgr_frame = capture.read()
+            if not success or bgr_frame is None:
+                raise RuntimeError(f"无法连续解码推理帧 {frame_index}")
+            grayscale_frame = cv2.cvtColor(bgr_frame, cv2.COLOR_BGR2GRAY)
+            frame = torch.from_numpy(grayscale_frame).to(device=args.device)
             predictions = [predictor.predict(frame, frame_index) for predictor in predictors]
             prediction_indexes = {prediction_index for _, prediction_index in predictions}
             if len(prediction_indexes) != 1:
@@ -202,7 +203,7 @@ def main() -> None:
             frame_indexes.append(prediction_index)
             fold_scores.append(scores)
     finally:
-        frame_fetcher.video.release()
+        capture.release()
         for predictor in predictors:
             predictor.reset_buffers()
 

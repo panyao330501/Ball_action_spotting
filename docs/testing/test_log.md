@@ -135,4 +135,5 @@ Git 提交：
   - `python -m py_compile scripts/run_custom_inference.py` 通过；配置的 `frame_stack_size` 为已验证的 33。
   - 首次经 `conda run ... --help` 调用失败，原因是 Windows CP932 控制台无法编码脚本当时的中文帮助文本；这不是模型或脚本逻辑错误。
   - 将 CLI 帮助文本改为 ASCII 英文后，直接使用 `ballspot-viz` 解释器执行 `--help` 成功，静态编译和配置检查再次通过。
+- 远端首次上游导入检查失败：上游 `src.frame_fetchers` 包会无条件导入未安装的 `PyNvCodec`。适配器随后改为项目内的连续 OpenCV 灰度解码，不修改上游检出，仍复用上游 `MultiDimStackerPredictor` 与模型帧处理器；该修复待远端复测。
 - 后续动作：在 chiron 安装配置中固定的 PyYAML，并进行不占用 GPU 的上游导入检查；GPU 冒烟仅通过 Slurm 提交。
