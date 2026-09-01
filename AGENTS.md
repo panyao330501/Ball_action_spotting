@@ -26,8 +26,8 @@
 
 ## 当前执行状态
 
-- 当前步骤：`04_full_remote_inference_and_postprocessing`
-- 当前步骤计划：`docs/plans/04_full_remote_inference_and_postprocessing.md`
+- 当前步骤：`05_local_visualization_pipeline`
+- 当前步骤计划：`docs/plans/05_local_visualization_pipeline.md`
 - 已完成部分：
   - 已创建项目文档结构。
   - 已确认本地输入视频存在。
@@ -51,8 +51,7 @@
   - 已实现独立 25 FPS 推理入口和 Slurm 作业脚本。
   - 已完成两次 0～90 秒 7-fold Slurm 冒烟推理，原始分数和文件 SHA-256 均完全一致。
 - 未完成部分：
-  - 完整 566.5 秒 7-fold Slurm 推理作业 `6835526` 已提交，等待完成与产物校验；不得重复提交。
-  - 尚未对全程原始分数进行时序后处理并导出事件候选。
+  - 尚未将本地事件候选渲染为带标签、时间码和置信度的完整审查视频及事件集锦。
 
 当前步骤发生变化，或未完成事项被完成、新增、删除时，必须更新本节。
 
@@ -88,6 +87,7 @@
 | `docs/plans/02_video_audit_and_inference_contract.md` | 源视频审计、无裁剪边界、模型输入重采样和时间对齐的详细计划 | 步骤 02 活动期间持续维护；完成后冻结，事实纠错除外 |
 | `docs/plans/03_model_acquisition_and_custom_video_adapter.md` | 冠军方案权重获取、自定义视频适配器和短片推理冒烟的详细计划 | 步骤 03 活动期间持续维护；完成后冻结，事实纠错除外 |
 | `docs/plans/04_full_remote_inference_and_postprocessing.md` | 完整视频的 Slurm 推理、原始分数验证和无损后处理的详细计划 | 步骤 04 活动期间持续维护；完成后冻结，事实纠错除外 |
+| `docs/plans/05_local_visualization_pipeline.md` | 本地事件叠加、完整审查视频、事件集锦和渲染质检的详细计划 | 步骤 05 活动期间持续维护；完成后冻结，事实纠错除外 |
 | `docs/milestone.md` | 已完成工作和重大项目变化的追加式记录 | 完成步骤、重要交付物或重大变化后追加 |
 | `docs/testing/test_strategy.md` | 测试层级、质量门槛、验收标准和证据要求 | 架构、接口或验收标准变化时维护 |
 | `docs/testing/test_log.md` | 测试命令、环境、结果和产物引用的时间顺序记录 | 每次有意义的测试后追加，不得静默改写历史结果 |
