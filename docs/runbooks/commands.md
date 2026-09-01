@@ -178,6 +178,22 @@ ssh chiron 'source="/work7/y_pan/Code_repo/Ball_action_spotting/data/raw/vs_飛�
 
 ## 7. 推理、后处理和可视化
 
+### 验证手动下载的最终模型权重——已验证
+
+权重必须在 `chiron` 项目根目录的 `ball_action/` 下，且不能通过 Git 提交。完整权重清单和 SHA-256 见 `docs/model_sources/lromul_ball_action_2023.md`。
+
+```powershell
+ssh chiron 'repo=/work7/y_pan/Code_repo/Ball_action_spotting; find "$repo/ball_action/experiments/ball_finetune_long_004" -type f -name "*.pth" -print0 | sort -z | xargs -0 sha256sum'
+```
+
+### 加载 fold 0 检查模型参数——已验证
+
+该命令只加载权重，不执行视频推理。预期为 2 类、33 帧、步长 2、`pad_normalize`。
+
+```powershell
+ssh chiron 'export CRYPTOGRAPHY_OPENSSL_NO_LEGACY=1; export CUDA_VISIBLE_DEVICES=0; repo=/work7/y_pan/Code_repo/Ball_action_spotting; export PYTHONPATH="$repo/third_party/ball-action-spotting"; /work7/y_pan/anaconda3/bin/conda run -n ballspot-infer python -c "import argus, src.argus_models; m=argus.load_model(\"/work7/y_pan/Code_repo/Ball_action_spotting/ball_action/experiments/ball_finetune_long_004/fold_0/model-006-0.864002.pth\", device=\"cuda:0\", optimizer=None, loss=None); print(m.params[\"nn_module\"]); print(m.params[\"frame_stack_size\"]); print(m.params[\"frame_stack_step\"]); print(m.params[\"frames_processor\"])"'
+```
+
 以下接口是占位模板，实际模块在对应实施步骤中确定。
 
 ### 远端推理——模板

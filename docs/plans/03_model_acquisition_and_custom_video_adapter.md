@@ -21,9 +21,9 @@
 
 ### 1. 权重与许可证
 
-- [ ] 从上游发布页或作者指定位置获取官方预训练权重，不使用无法追溯的镜像。
-- [ ] 记录下载 URL、发布日期/版本、文件大小、SHA-256、许可证和获取日期；权重存入远端 Git 忽略的 `weights/`。
-- [ ] 读取权重内的 `argus` 模型参数，确认 `multidim_stacker`、2 类、15 帧、步长 2、`pad_normalize` 与固定源码一致。
+- [x] 从作者 README 指定的公开 Google Drive 目录取得官方训练产物，不使用无法追溯的镜像。
+- [x] 记录下载 URL、发布日期/版本、文件大小、SHA-256、许可证和获取日期；训练产物由用户手动放入远端项目根目录的 `action/` 与 `ball_action/`，均受 Git 忽略规则保护。
+- [x] 读取 fold 0 权重内的 `argus` 模型参数，确认 `multidim_stacker`、2 类、33 帧、步长 2、`pad_normalize` 与固定源码一致。
 
 验收：可追溯且已哈希的权重能被 `argus.load_model` 成功载入，不含缺失键、NaN 或不匹配参数。
 
@@ -31,8 +31,8 @@
 
 - [ ] 在本仓库实现独立入口，不修改 `third_party/` 上游检出。
 - [ ] 读取 `configs/poc_video.yaml`，验证源/代理身份和输入为 25 FPS。
-- [ ] 复用上游的 `MultiDimStackerPredictor`、`pad_normalize`、15 帧、步长 2 和原始后处理参数；优先使用 OpenCV 解码适配器，GPU 仅用于模型计算。
-- [ ] 以连续帧解码覆盖指定时间范围，正确处理 28 帧上下文边界并记录有效预测帧范围。
+- [ ] 复用上游的 `MultiDimStackerPredictor`、`pad_normalize`、33 帧、步长 2 和原始后处理参数；优先使用 OpenCV 解码适配器，GPU 仅用于模型计算。
+- [ ] 以连续帧解码覆盖指定时间范围，正确处理 64 帧上下文边界并记录有效预测帧范围。
 - [ ] 导出不可变原始分数、帧号、`frame_index / 25.0` 秒和运行清单；不得在本步骤先丢弃低分。
 
 验收：入口无需 SoccerNet 的比赛目录结构；可从配置运行；输出符合 `docs/data/label_and_artifact_contract.md`。

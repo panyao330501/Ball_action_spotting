@@ -114,3 +114,14 @@ Git 提交：
   - 代理视频为 1280×720、25 FPS CFR、14,163 帧、566.520 秒、无音频，SHA-256 为 `b40d98c19f3d4dc172ab91a4e5900921ef8e9982c7d59efd0630d745c47e3356`。
   - 源与代理的时长差为 0.020 秒，小于一个 25 FPS 帧的 0.040 秒时间容差。
 - 后续动作：步骤 03 获取权重，实施 25 FPS 自定义视频适配器，并执行 60～90 秒冒烟推理。
+
+## 2026-09-01——T-MODEL-002 官方权重清单与加载兼容性
+
+- 状态：通过
+- 端点和环境：`chiron`，`ballspot-infer`，`CUDA_VISIBLE_DEVICES=0`
+- 输入和配置：用户手动从作者 README 指定的公开 Google Drive 下载并放置在项目根目录的 `action/`、`ball_action/`；上游源码提交 `9c471531c62b51bd0cfe6170b74d035da44c88ed`
+- 观察结果：
+  - `ball_action/experiments/ball_finetune_long_004/` 包含 7 个 fold 权重，每个大小为 55,081,387 字节；SHA-256 已写入 `docs/model_sources/lromul_ball_action_2023.md`。
+  - 在固定上游代码和单张 A6000 上，`argus.load_model` 成功加载 fold 0，无缺失键或参数错误。
+  - 实际权重参数为 `multidim_stacker`、2 类、33 帧、步长 2、`pad_normalize(size=(1280, 736))`；因此替代先前对 15 帧初始模型的实现假设。
+- 后续动作：实现独立 25 FPS 自定义视频适配器，并以 0～90 秒范围完成两次可复现的冒烟推理。

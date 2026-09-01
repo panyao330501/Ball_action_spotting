@@ -8,6 +8,8 @@
 *.mp3
 /frames/
 /data/
+/action/
+/ball_action/
 /artifacts/
 /outputs/
 

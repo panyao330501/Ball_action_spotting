@@ -23,7 +23,7 @@ model_preprocess:
   padded_width: 1280
   padded_height: 736
   padding: "constant_black_centered"
-  frame_stack_size: 15
+  frame_stack_size: 33
   frame_stack_step: 2
 time_mapping:
   inference_frame_to_source_sec: "frame_index / 25.0"
