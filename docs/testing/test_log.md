@@ -225,3 +225,17 @@ Git 提交：
 - 证据和产物：`artifacts/visualization/20260901_151037_2b29422_poc-video/render_manifest.json`、`visualization.log`、`qa_frames/`；`outputs/20260901_151037_2b29422_poc-video/`
 - 输出 SHA-256：`annotated_full.mp4` 为 `8debb7951d0be1a09f4c4e28482f672ced45c12bfb2bb523a808a5e8fa480609`；`event_highlights.mp4` 为 `7411b90692de5f348c8e2c98a115580640188b39714491c712a33cd07b3f4006`。
 - 后续动作：步骤 06 逐一审查 58 个候选并连续观看全程，区分模型失败与画面不可观测。
+
+## 2026-09-01——T-VIZ-005 事件固定时间码显示烟雾测试
+
+- 状态：通过
+- Git 提交：`adca843` 加未提交的事件时间码显示修订
+- 端点和环境：本地 `ballspot-viz`；Python 3.11；FFmpeg/FFprobe 7.1.1
+- 输入和配置：规范源 0～26 秒；前 4 个候选；`ultrafast` / CRF 23；运行 `smoke_20260901_event_timecode`
+- 观察结果：
+  - 8 个自动化测试全部通过；滤镜测试明确检查事件行包含毫秒级固定时间码。
+  - 每条事件在置信度后显示 `event HH:MM:SS.mmm`，可与顶部动态 `SOURCE HH:MM:SS.mmm` 直接比较。
+  - 18.000 和 21.600 秒抽帧确认 Pass/Drive 颜色、事件时间、显示顺序均正确，背景条加宽后没有文字截断。
+  - 烟雾完整视频为 780 帧/26.000 秒；4 个集锦片段各 210 帧/7.000 秒，最终集锦视频流为 840 帧/28.000 秒。
+- 证据和产物：`artifacts/visualization/smoke_20260901_event_timecode/render_manifest.json`、`qa_frames/`；`outputs/smoke_20260901_event_timecode/`
+- 后续动作：以新运行 ID 和正式 `fast` / CRF 18 参数重新生成全程审查视频与事件集锦，不覆盖原运行。

@@ -71,6 +71,7 @@ def test_filters_explicitly_use_temporal_overlays_only() -> None:
     highlights = render.build_highlight_clip_filter(segment, 1)
     assert "SOURCE %{pts\\:hms}" in annotated
     assert "Pass" in annotated
+    assert "event 00\\:00\\:02.000" in annotated
     assert "drawbox" in annotated and "drawtext" in annotated
     assert "EVENT 01/01" in highlights
     assert "drawbox" in highlights and "drawtext" in highlights

@@ -253,11 +253,12 @@ def build_annotated_filter(
         y = 82 + row * 40
         enable = f"between(t,{start:.3f},{end:.3f})"
         text = ffmpeg_escape_text(
-            f"{sequence:02d}  {event['event_id']}  {event['label']}  confidence {event['confidence']:.3f}"
+            f"{sequence:02d}  {event['event_id']}  {event['label']}  confidence {event['confidence']:.3f}  "
+            f"event {event['timecode']}"
         )
         filters.extend(
             [
-                f"drawbox=x=20:y={y}:w=650:h=36:color=black@0.62:t=fill:enable='{enable}'",
+                f"drawbox=x=20:y={y}:w=800:h=36:color=black@0.62:t=fill:enable='{enable}'",
                 f"drawtext=font=Arial:text='{text}':fontcolor={LABEL_COLORS[event['label']]}:"
                 f"fontsize=22:x=32:y={y + 6}:shadowcolor=black:shadowx=2:shadowy=2:enable='{enable}'",
             ]
