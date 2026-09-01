@@ -137,3 +137,17 @@ Git 提交：
   - 将 CLI 帮助文本改为 ASCII 英文后，直接使用 `ballspot-viz` 解释器执行 `--help` 成功，静态编译和配置检查再次通过。
 - 远端首次上游导入检查失败：上游 `src.frame_fetchers` 包会无条件导入未安装的 `PyNvCodec`。适配器随后改为项目内的连续 OpenCV 灰度解码，不修改上游检出，仍复用上游 `MultiDimStackerPredictor` 与模型帧处理器；该修复待远端复测。
 - 后续动作：在 chiron 安装配置中固定的 PyYAML，并进行不占用 GPU 的上游导入检查；GPU 冒烟仅通过 Slurm 提交。
+
+## 2026-09-01——T-ADAPTER-002 Slurm 端到端冒烟与可复现性
+
+- 状态：通过（附两次已解决的比较命令语法失败）
+- 端点和环境：`chiron` Slurm 节点 `gtr`；作业 `6835524`、`6835525`；每次 1 张 NVIDIA RTX A6000；`ballspot-infer`
+- 输入和配置：25 FPS 代理视频；0.0～90.0 秒；7 个 `ball_finetune_long_004` fold；水平翻转 TTA
+- 观察结果：
+  - 两次作业均完成并写入独立的 `artifacts/inference/smoke_<job_id>/` 目录；运行时间分别为约 285.0 秒和 279.5 秒。
+  - 每次导出 2,217 个有序预测帧（1.320～89.960 秒），`fold_scores=(2217, 7, 2)`、`ensemble_scores=(2217, 2)`，类别为 `PASS`、`DRIVE`。
+  - 两种分数均无 NaN/Inf；集成分数范围为 0.0051905～0.8897791。
+  - 两次比较的全部数组逐元素相同，最大绝对差为 0；两个 `scores.npz` 的 SHA-256 均为 `bf9aed0f7bda660ca70d4c3c1c94583d2dd3f082945a50508b2d3c218789da46`。
+  - 首两次比较命令各因少写右括号而报 `SyntaxError`；未修改或损坏产物，随后使用简化的比较表达式成功完成验证。
+- 证据和产物：`artifacts/inference/smoke_6835524/`、`artifacts/inference/smoke_6835525/`（Git 忽略）
+- 后续动作：步骤 04 对完整 566.5 秒提交同一推理入口，只生成一次全程原始分数，再离线执行后处理。
