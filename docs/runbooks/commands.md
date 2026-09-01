@@ -218,10 +218,29 @@ ssh chiron 'squeue -u "$USER"'
 ssh chiron "cd /work7/y_pan/Code_repo/Ball_action_spotting && conda run -n ballspot-infer python -m ballspot.infer --config configs/poc.yaml"
 ```
 
-### 本地可视化——模板
+### 本地可视化烟雾渲染——已验证
 
 ```powershell
-& 'C:\ProgramData\miniconda3\Scripts\conda.exe' run -n ballspot-viz python -m ballspot.visualize --config configs/poc.yaml --run-id <RUN_ID>
+& 'C:\Users\logan\.conda\envs\ballspot-viz\python.exe' scripts/render_visualization.py `
+  --run-id smoke_20260901_step05_r5 `
+  --render-end-sec 26 `
+  --preset ultrafast `
+  --crf 23 `
+  --ffmpeg 'C:\Users\logan\.conda\envs\ballspot-viz\Library\bin\ffmpeg.exe' `
+  --ffprobe 'C:\Users\logan\.conda\envs\ballspot-viz\Library\bin\ffprobe.exe'
+```
+
+入口验证源视频和事件契约、拒绝覆盖既有运行目录，并同时生成完整叠加视频、逐事件片段、事件集锦、渲染清单与日志。
+
+### 本地全程可视化——模板
+
+将 `<RUN_ID>` 替换为符合数据契约的新运行 ID；执行前确认同名产物目录不存在。
+
+```powershell
+& 'C:\Users\logan\.conda\envs\ballspot-viz\python.exe' scripts/render_visualization.py `
+  --run-id <RUN_ID> `
+  --ffmpeg 'C:\Users\logan\.conda\envs\ballspot-viz\Library\bin\ffmpeg.exe' `
+  --ffprobe 'C:\Users\logan\.conda\envs\ballspot-viz\Library\bin\ffprobe.exe'
 ```
 
 ### 本地测试——模板
@@ -230,4 +249,4 @@ ssh chiron "cd /work7/y_pan/Code_repo/Ball_action_spotting && conda run -n balls
 & 'C:\ProgramData\miniconda3\Scripts\conda.exe' run -n ballspot-viz pytest -q
 ```
 
-实际入口创建后，将模板替换为已验证命令；只有仍受支持的旧命令才保留。
+全程入口成功执行后，将上述模板改为已验证命令；只有仍受支持的旧命令才保留。

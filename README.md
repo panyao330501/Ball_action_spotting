@@ -12,7 +12,7 @@
 
 1. `AGENTS.md`：当前状态和工作规则。
 2. `docs/plans/overall_plan.md`：稳定的总体实施计划。
-3. `docs/plans/01_project_bootstrap_and_environment.md`：当前活动步骤。
+3. `docs/plans/05_local_visualization_pipeline.md`：当前活动步骤。
 4. `docs/runbooks/commands.md`：可使用的命令模式。
 
 输入视频、模型权重、预测结果和生成视频均被有意排除在 Git 之外。
