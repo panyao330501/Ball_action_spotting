@@ -239,3 +239,21 @@ Git 提交：
   - 烟雾完整视频为 780 帧/26.000 秒；4 个集锦片段各 210 帧/7.000 秒，最终集锦视频流为 840 帧/28.000 秒。
 - 证据和产物：`artifacts/visualization/smoke_20260901_event_timecode/render_manifest.json`、`qa_frames/`；`outputs/smoke_20260901_event_timecode/`
 - 后续动作：以新运行 ID 和正式 `fast` / CRF 18 参数重新生成全程审查视频与事件集锦，不覆盖原运行。
+
+## 2026-09-01——T-VIZ-006 带事件时间码的全程修订渲染
+
+- 状态：通过
+- Git 提交：`1b5f2bf8b0d886269cef4ee5eaa1f57e6658e08a`
+- 端点和环境：本地 `ballspot-viz`；Python 3.11；FFmpeg/FFprobe 7.1.1
+- 命令或命令手册章节：`docs/runbooks/commands.md` 的“本地全程可视化”
+- 输入和配置：规范源及原 58 个候选；`libx264 fast` / CRF 18；运行 `20260901_154013_1b5f2bf_poc-video-timecode`
+- 观察结果：
+  - 渲染清单状态为 `completed`，记录 Pass 34、Drive 24；事件行在置信度后显示毫秒级固定事件时间码。
+  - `annotated_full.mp4` 为 89,140,776 字节，H.264 1280×720、30 FPS、16,995 帧、566.500 秒；AAC 为 566.493 秒。完整解码通过。
+  - `event_highlights.mp4` 为 82,586,202 字节，视频流为 12,180 帧/406.000 秒，AAC 为 406.000 秒；完整解码通过。
+  - 58 个中间片段逐一检查，全部为 210 帧/7.000 秒，顺序和流结构正确。
+  - 源音轨与完整修订视频的解码 framemd5 文件 SHA-256 均为 `6777E7139976AEBBC0FB297FD32BC2249EF90E3474E5197366C35DC58AAFC46B`。
+  - 人工查看 18.000、312.600、548.000 秒抽帧，确认事件固定时间码与动态源时间码可直接对比，文字无截断，Pass/Drive 颜色和密集行顺序正确。
+- 证据和产物：`artifacts/visualization/20260901_154013_1b5f2bf_poc-video-timecode/render_manifest.json`、`visualization.log`、`qa_frames/`；`outputs/20260901_154013_1b5f2bf_poc-video-timecode/`
+- 输出 SHA-256：`annotated_full.mp4` 为 `30cc1c4f7a50f222ea1cc501d11cfd56111b7a6f3fcdb1f11dd6a002eef71f88`；`event_highlights.mp4` 为 `f03ebe0999e313777a14f6411748727705ca8bfe6455ac713e8b75ac79906d61`。
+- 后续动作：步骤 06 使用修订视频逐一审查 58 个候选。
