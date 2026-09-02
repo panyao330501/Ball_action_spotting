@@ -250,3 +250,15 @@ ssh chiron "cd /work7/y_pan/Code_repo/Ball_action_spotting && conda run -n balls
 ```
 
 该命令同时生成完整叠加视频、58 个精确片段、事件集锦、清单和日志。重复运行必须使用新运行 ID，不能覆盖本次已验证产物。
+
+### 全局时间轴烟雾渲染——已验证
+
+该版本在 1280×720 源画面下方增加 120 像素全局时间轴；短片只显示前 26 秒的当前事件，但时间轴仍包含完整 566.5 秒中的全部 58 个候选。
+
+```powershell
+& 'C:\ProgramData\miniconda3\Scripts\conda.exe' run -n ballspot-viz python scripts/render_visualization.py `
+  --run-id smoke_20260902_global_timeline_v1 `
+  --render-end-sec 26 `
+  --preset ultrafast `
+  --crf 23
+```

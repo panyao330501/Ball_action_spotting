@@ -65,13 +65,32 @@ def test_highlight_segments_clip_source_boundaries() -> None:
 
 
 def test_filters_explicitly_use_temporal_overlays_only() -> None:
-    events = [event("event-000001", 2.0)]
-    annotated = render.build_annotated_filter(events, 10.0, 0.5, 2.0)
+    events = [event("event-000001", 2.0), event("event-000002", 8.0, "Drive")]
+    annotated = render.build_annotated_filter(events, events, 10.0, 10.0, 0.5, 2.0)
     segment = render.highlight_segments(events, 10.0, 3.0, 4.0)[0]
-    highlights = render.build_highlight_clip_filter(segment, 1)
+    highlights = render.build_highlight_clip_filter(segment, 2)
     assert "SOURCE %{pts\\:hms}" in annotated
     assert "Pass" in annotated
+    assert "Drive" in annotated
     assert "event 00\\:00\\:02.000" in annotated
+    assert "pad=iw:ih+120" in annotated
+    assert "GLOBAL  %{pts\\:hms} / 00\\:00\\:10.000" in annotated
+    assert render.TIMELINE_COLORS["Pass"] in annotated
+    assert render.TIMELINE_COLORS["Drive"] in annotated
+    assert "x='35+t/10.000000*1200'" in annotated
     assert "drawbox" in annotated and "drawtext" in annotated
-    assert "EVENT 01/01" in highlights
+    assert "EVENT 01/02" in highlights
+    assert "source 00\\:00\\:02.000" in highlights
+    assert "y=ih-116" in highlights
     assert "drawbox" in highlights and "drawtext" in highlights
+
+
+def test_timeline_marker_mapping_uses_full_source_interval() -> None:
+    assert render.timeline_marker_x(0.0, 10.0) == 40
+    assert render.timeline_marker_x(5.0, 10.0) == 640
+    assert render.timeline_marker_x(10.0, 10.0) == 1239
+
+
+def test_timeline_rejects_marker_outside_interval() -> None:
+    with pytest.raises(ValueError, match="outside"):
+        render.timeline_marker_x(10.1, 10.0)

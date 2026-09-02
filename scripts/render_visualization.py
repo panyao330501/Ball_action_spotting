@@ -38,6 +38,10 @@ ALLOWED_REVIEW_STATUS = {
     "ambiguous",
 }
 LABEL_COLORS = {"Pass": "0x00E676", "Drive": "0xFF9800"}
+TIMELINE_COLORS = {"Pass": "0x2196F3", "Drive": "0xF44336"}
+TIMELINE_FOOTER_HEIGHT = 120
+TIMELINE_X = 40
+TIMELINE_WIDTH = 1200
 
 
 def parse_args() -> argparse.Namespace:
@@ -236,16 +240,68 @@ def ffmpeg_escape_text(value: str) -> str:
     )
 
 
+def timeline_marker_x(time_sec: float, timeline_end_sec: float) -> int:
+    if not 0 <= time_sec <= timeline_end_sec:
+        raise ValueError("Timeline marker time is outside the global interval")
+    return min(
+        TIMELINE_X + TIMELINE_WIDTH - 1,
+        round(TIMELINE_X + time_sec / timeline_end_sec * TIMELINE_WIDTH),
+    )
+
+
+def build_global_timeline_filters(
+    events: list[dict[str, Any]], timeline_end_sec: float
+) -> list[str]:
+    """Build a fixed global timeline below the unchanged source canvas."""
+    if timeline_end_sec <= 0:
+        raise ValueError("Timeline duration must be positive")
+    total_timecode = ffmpeg_escape_text(format_timecode(timeline_end_sec))
+    filters = [
+        f"pad=iw:ih+{TIMELINE_FOOTER_HEIGHT}:0:0:color=black",
+        f"drawbox=x=0:y=ih-{TIMELINE_FOOTER_HEIGHT}:w=iw:h={TIMELINE_FOOTER_HEIGHT}:"
+        "color=black:t=fill",
+        f"drawtext=font=Arial:text='GLOBAL  %{{pts\\:hms}} / {total_timecode}':"
+        "fontcolor=white:fontsize=22:x=40:y=h-110",
+        f"drawbox=x=970:y=729:w=14:h=14:color={TIMELINE_COLORS['Pass']}:t=fill",
+        "drawtext=font=Arial:text='Pass':fontcolor=white:fontsize=20:x=992:y=726",
+        f"drawbox=x=1080:y=729:w=14:h=14:color={TIMELINE_COLORS['Drive']}:t=fill",
+        "drawtext=font=Arial:text='Drive':fontcolor=white:fontsize=20:x=1102:y=726",
+    ]
+    for event in events:
+        x = timeline_marker_x(event["time_sec"], timeline_end_sec)
+        if event["label"] == "Pass":
+            y = "ih-74"
+        else:
+            y = "ih-50"
+        filters.append(
+            f"drawbox=x={x}:y={y}:w=3:h=30:color={TIMELINE_COLORS[event['label']]}:t=fill"
+        )
+    filters.extend(
+        [
+            f"drawbox=x={TIMELINE_X}:y=ih-50:w={TIMELINE_WIDTH}:h=6:color=0x808080:t=fill",
+            f"drawtext=font=Arial:text='|':fontcolor=white:fontsize=62:"
+            f"x='{TIMELINE_X - 5}+t/{timeline_end_sec:.6f}*{TIMELINE_WIDTH}':y=h-91:"
+            "shadowcolor=black:shadowx=1:shadowy=1",
+        ]
+    )
+    return filters
+
+
 def build_annotated_filter(
-    events: list[dict[str, Any]], render_end_sec: float, pre_sec: float, post_sec: float
+    display_events: list[dict[str, Any]],
+    timeline_events: list[dict[str, Any]],
+    render_end_sec: float,
+    timeline_end_sec: float,
+    pre_sec: float,
+    post_sec: float,
 ) -> str:
     filters = [
         "drawbox=x=iw-700:y=20:w=360:h=48:color=black@0.78:t=fill",
         "drawtext=font=Arial:text='SOURCE %{pts\\:hms}':fontcolor=white:fontsize=28:"
         "x=w-685:y=29:shadowcolor=black:shadowx=2:shadowy=2",
     ]
-    rows = assign_cluster_rows(events, pre_sec, post_sec)
-    for sequence, (event, row) in enumerate(zip(events, rows), start=1):
+    rows = assign_cluster_rows(display_events, pre_sec, post_sec)
+    for sequence, (event, row) in enumerate(zip(display_events, rows), start=1):
         start = max(0.0, event["time_sec"] - pre_sec)
         end = min(render_end_sec, event["time_sec"] + post_sec)
         if start >= end:
@@ -263,6 +319,7 @@ def build_annotated_filter(
                 f"fontsize=22:x=32:y={y + 6}:shadowcolor=black:shadowx=2:shadowy=2:enable='{enable}'",
             ]
         )
+    filters.extend(build_global_timeline_filters(timeline_events, timeline_end_sec))
     filters.append("format=yuv420p")
     return ",".join(filters)
 
@@ -312,14 +369,14 @@ def build_highlight_clip_filter(segment: dict[str, Any], total: int) -> str:
     label = segment["label"]
     title = ffmpeg_escape_text(
         f"EVENT {segment['sequence']:02d}/{total:02d}  {segment['event_id']}  {label}  "
-        f"confidence {segment['confidence']:.3f}  source {segment['event_time_sec']:.3f}s"
+        f"confidence {segment['confidence']:.3f}  source {segment['event_timecode']}"
     )
     return ",".join(
         [
             "setpts=PTS-STARTPTS",
-            "drawbox=x=20:y=ih-72:w=iw-40:h=52:color=black@0.68:t=fill",
-            f"drawtext=font=Arial:text='{title}':fontcolor={LABEL_COLORS[label]}:fontsize=26:"
-            "x=34:y=h-61:shadowcolor=black:shadowx=2:shadowy=2",
+            "drawbox=x=20:y=ih-116:w=iw-40:h=38:color=black@0.82:t=fill",
+            f"drawtext=font=Arial:text='{title}':fontcolor={LABEL_COLORS[label]}:fontsize=22:"
+            "x=34:y=h-109:shadowcolor=black:shadowx=2:shadowy=2",
             "format=yuv420p",
         ]
     )
@@ -442,7 +499,12 @@ def main() -> None:
             raise ValueError("The render interval contains no events")
 
         annotated_filter = build_annotated_filter(
-            events, render_end, args.display_pre_sec, args.display_post_sec
+            events,
+            all_events,
+            render_end,
+            configured_end,
+            args.display_pre_sec,
+            args.display_post_sec,
         )
         (artifact_dir / "annotated_filter.txt").write_text(annotated_filter + "\n", encoding="utf-8")
         annotated_command = [
@@ -608,6 +670,24 @@ def main() -> None:
                         "post": args.highlight_post_sec,
                     },
                     "label_colors": LABEL_COLORS,
+                    "global_timeline": {
+                        "source_canvas_px": [
+                            int(source_info["video"]["width"]),
+                            int(source_info["video"]["height"]),
+                        ],
+                        "output_canvas_px": [
+                            int(source_info["video"]["width"]),
+                            int(source_info["video"]["height"]) + TIMELINE_FOOTER_HEIGHT,
+                        ],
+                        "interval_sec": [0.0, configured_end],
+                        "footer_height_px": TIMELINE_FOOTER_HEIGHT,
+                        "track_x_px": TIMELINE_X,
+                        "track_width_px": TIMELINE_WIDTH,
+                        "marker_colors": TIMELINE_COLORS,
+                        "marker_lanes": {"Pass": "above", "Drive": "below"},
+                        "playhead_color": "white",
+                        "marker_count": len(all_events),
+                    },
                     "video_encoder": {"codec": "libx264", "preset": args.preset, "crf": args.crf},
                     "full_audio": "copied from source without re-encoding",
                     "highlight_audio": "AAC 192 kb/s",
