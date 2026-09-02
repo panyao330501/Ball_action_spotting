@@ -12,16 +12,16 @@
 ## 固定输入
 
 - 事件：`artifacts/inference/full_6835526/events.json`，Pass 34、Drive 24。
-- 完整审查视频：`outputs/20260901_154013_1b5f2bf_poc-video-timecode/annotated_full.mp4`。
-- 事件集锦：`outputs/20260901_154013_1b5f2bf_poc-video-timecode/event_highlights.mp4`。
-- 渲染清单：`artifacts/visualization/20260901_154013_1b5f2bf_poc-video-timecode/render_manifest.json`。
+- 完整审查视频：`outputs/20260902_144310_20ae1e5_poc-video-global-timeline/annotated_full.mp4`。
+- 事件集锦：`outputs/20260902_144310_20ae1e5_poc-video-global-timeline/event_highlights.mp4`。
+- 渲染清单：`artifacts/visualization/20260902_144310_20ae1e5_poc-video-global-timeline/render_manifest.json`。
 - 可见性和审查枚举遵循 `docs/data/label_and_artifact_contract.md`。
 
 ## 工作包
 
 ### 1. 审查记录初始化
 
-- [ ] 从事件 JSON 生成 `artifacts/visualization/20260901_154013_1b5f2bf_poc-video-timecode/review_notes.csv`，保留事件 ID、源时间、标签、置信度并增加人工可见性、审查状态和备注字段。
+- [ ] 从事件 JSON 生成 `artifacts/visualization/20260902_144310_20ae1e5_poc-video-global-timeline/review_notes.csv`，保留事件 ID、源时间、标签、置信度并增加人工可见性、审查状态和备注字段。
 - [ ] 保证事件顺序、数量和身份与固定输入一致；未经人工检查不得自动把 `VISIBLE` 当作已确认值。
 - [ ] 为连续观看发现的非候选问题建立独立记录，避免把可见漏检伪装成模型候选。
 

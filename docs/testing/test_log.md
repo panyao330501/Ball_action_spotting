@@ -289,3 +289,22 @@ Git 提交：
 - 证据和产物：`artifacts/visualization/smoke_20260902_global_timeline_v1/render_manifest.json`、`qa_frames/`；`outputs/smoke_20260902_global_timeline_v1/`
 - 输出 SHA-256：`annotated_full.mp4` 为 `dfcabedaa7541f4cb43bd3abb6c57803c83d5051d4c5525cd90c0fbe6a46e309`；`event_highlights.mp4` 为 `7f7851ca98987cc789cd12cdf82fe635be15b9e8d209b533dd93b166555f4ad4`。
 - 后续动作：提交实现后，以正式 `fast` / CRF 18 参数生成不覆盖旧版本的全程审查视频和 58 事件集锦。
+
+## 2026-09-02——T-VIZ-009 带全局事件时间轴的全程渲染
+
+- 状态：通过
+- Git 提交：`20ae1e5e1e336cd95740568360455d631331f8ac`
+- 端点和环境：本地 `ballspot-viz`；Python 3.11；FFmpeg/FFprobe 7.1.1
+- 命令或命令手册章节：`docs/runbooks/commands.md` 的“本地全程可视化”
+- 输入和配置：规范源及原 58 个候选；完整 `0.000`～`566.500` 秒全局时间轴；`libx264 fast` / CRF 18；运行 `20260902_144310_20ae1e5_poc-video-global-timeline`
+- 观察结果：
+  - 渲染清单状态为 `completed`，记录 Pass 34、Drive 24、时间轴标记 58 个、源画布 1280×720、输出画布 1280×840、底栏高度 120 像素。
+  - `annotated_full.mp4` 为 92,974,502 字节，H.264 1280×840、30 FPS、16,995 帧/566.500 秒；AAC 为 26,557 帧/566.493 秒。完整解码无错误。
+  - `event_highlights.mp4` 为 86,606,943 字节，H.264 1280×840、12,180 帧/406.000 秒；AAC 为 19,083 帧/406.000 秒。完整解码无错误。
+  - 58 个中间片段按序逐一检查，全部为 1280×840、30 FPS、210 帧/7.000 秒，无异常片段。
+  - 源音轨和完整视频音轨的解码 framemd5 文件 SHA-256 均为 `6777E7139976AEBBC0FB297FD32BC2249EF90E3474E5197366C35DC58AAFC46B`；渲染日志中非零 `dup_frames` 和 `drop_frames` 记录均为 0。
+  - 人工查看 0.2、18、312.6、548、566.2 秒完整视频抽帧，确认源画面没有缩放或被底栏覆盖，全部事件位置固定，白色指针从轨道起点移动至终点；查看第 1、29、58 个集锦事件，确认标题、固定源时间和全局位置一致。
+  - FFmpeg 日志出现 301 行 `Fontconfig error: No writable cache directories`，原因是受限环境不能写用户字体缓存；Arial 字体仍正常解析并出现在全部抽帧中，渲染退出码为 0，因此这是非阻塞环境警告而不是媒体失败。
+- 证据和产物：`artifacts/visualization/20260902_144310_20ae1e5_poc-video-global-timeline/render_manifest.json`、`visualization.log`、`qa_frames/`、两份音轨 framemd5；`outputs/20260902_144310_20ae1e5_poc-video-global-timeline/`
+- 输出 SHA-256：`annotated_full.mp4` 为 `0c375856f5c7afa5631acce05187189808675e996c626024ce04daba7ea11b8c`；`event_highlights.mp4` 为 `f91ec0c4c117bdd27152a2c5b44d1203ea2a5e00b2f7a36de539dbd94f755264`。
+- 后续动作：步骤 06 使用该运行逐一审查 58 个候选，并连续观看全片记录明显漏检、画外区间和主要失败模式。
