@@ -77,6 +77,8 @@ def test_filters_explicitly_use_temporal_overlays_only() -> None:
     assert "GLOBAL  %{pts\\:hms} / 00\\:00\\:10.000" in annotated
     assert render.TIMELINE_COLORS["Pass"] in annotated
     assert render.TIMELINE_COLORS["Drive"] in annotated
+    assert render.TIMELINE_MARKER_WIDTH == 2
+    assert "w=2:h=30" in annotated
     assert "x='35+t/10.000000*1200'" in annotated
     assert "drawbox" in annotated and "drawtext" in annotated
     assert "EVENT 01/02" in highlights

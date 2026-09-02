@@ -308,3 +308,17 @@ Git 提交：
 - 证据和产物：`artifacts/visualization/20260902_144310_20ae1e5_poc-video-global-timeline/render_manifest.json`、`visualization.log`、`qa_frames/`、两份音轨 framemd5；`outputs/20260902_144310_20ae1e5_poc-video-global-timeline/`
 - 输出 SHA-256：`annotated_full.mp4` 为 `0c375856f5c7afa5631acce05187189808675e996c626024ce04daba7ea11b8c`；`event_highlights.mp4` 为 `f91ec0c4c117bdd27152a2c5b44d1203ea2a5e00b2f7a36de539dbd94f755264`。
 - 后续动作：步骤 06 使用该运行逐一审查 58 个候选，并连续观看全片记录明显漏检、画外区间和主要失败模式。
+
+## 2026-09-02——T-VIZ-010 两像素事件标记预览
+
+- 状态：通过；待用户确认视觉方案
+- Git 提交：`5dc972b` 加未提交的标记宽度调整
+- 端点和环境：本地 `ballspot-viz`；Python 3.11；FFmpeg/FFprobe 7.1.1
+- 输入和配置：规范源 0～26 秒；全片 58 个时间轴标记；红蓝事件竖线由 3 像素缩至 2 像素；`ultrafast` / CRF 23；运行 `smoke_20260902_timeline_2px_v1`
+- 观察结果：
+  - 静态编译和 10 个自动化测试通过；测试明确断言时间轴标记宽度为 2 像素，清单同时记录 `marker_width_px=2`。
+  - `annotated_full.mp4` 与 `event_highlights.mp4` 均完整解码无错误，输出画布仍为 1280×840；动态指针、轨道、颜色、事件位置和其他布局均未改变。
+  - 人工查看 0.2 和 18 秒抽帧，确认红蓝线比 3 像素正式版本更细，密集事件簇仍清晰可辨。
+- 证据和产物：`artifacts/visualization/smoke_20260902_timeline_2px_v1/render_manifest.json`、`qa_frames/`；`outputs/smoke_20260902_timeline_2px_v1/`
+- 输出 SHA-256：`annotated_full.mp4` 为 `dc5df727c04eace7f8e8054b398236c92de34cf6f1c5d1f900682845db4ec437`；`event_highlights.mp4` 为 `613dc9937027e75a9535afcd1dccc40da7acf87776c830895c0a50572915e982`。
+- 后续动作：用户确认 2 像素观感后，再提交正式参数的全程渲染并切换步骤 06 固定输入；确认前保留现有 3 像素正式版本。

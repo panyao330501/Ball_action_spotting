@@ -42,6 +42,7 @@ TIMELINE_COLORS = {"Pass": "0x2196F3", "Drive": "0xF44336"}
 TIMELINE_FOOTER_HEIGHT = 120
 TIMELINE_X = 40
 TIMELINE_WIDTH = 1200
+TIMELINE_MARKER_WIDTH = 2
 
 
 def parse_args() -> argparse.Namespace:
@@ -274,7 +275,8 @@ def build_global_timeline_filters(
         else:
             y = "ih-50"
         filters.append(
-            f"drawbox=x={x}:y={y}:w=3:h=30:color={TIMELINE_COLORS[event['label']]}:t=fill"
+            f"drawbox=x={x}:y={y}:w={TIMELINE_MARKER_WIDTH}:h=30:"
+            f"color={TIMELINE_COLORS[event['label']]}:t=fill"
         )
     filters.extend(
         [
@@ -683,6 +685,7 @@ def main() -> None:
                         "footer_height_px": TIMELINE_FOOTER_HEIGHT,
                         "track_x_px": TIMELINE_X,
                         "track_width_px": TIMELINE_WIDTH,
+                        "marker_width_px": TIMELINE_MARKER_WIDTH,
                         "marker_colors": TIMELINE_COLORS,
                         "marker_lanes": {"Pass": "above", "Drive": "below"},
                         "playhead_color": "white",
