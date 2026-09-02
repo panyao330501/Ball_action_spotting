@@ -322,3 +322,21 @@ Git 提交：
 - 证据和产物：`artifacts/visualization/smoke_20260902_timeline_2px_v1/render_manifest.json`、`qa_frames/`；`outputs/smoke_20260902_timeline_2px_v1/`
 - 输出 SHA-256：`annotated_full.mp4` 为 `dc5df727c04eace7f8e8054b398236c92de34cf6f1c5d1f900682845db4ec437`；`event_highlights.mp4` 为 `613dc9937027e75a9535afcd1dccc40da7acf87776c830895c0a50572915e982`。
 - 后续动作：用户确认 2 像素观感后，再提交正式参数的全程渲染并切换步骤 06 固定输入；确认前保留现有 3 像素正式版本。
+
+## 2026-09-02——T-VIZ-011 两像素事件标记全程渲染
+
+- 状态：通过
+- Git 提交：`978ded71fac1ace3372db3915d72f942a9e896ef`
+- 端点和环境：本地 `ballspot-viz`；Python 3.11；FFmpeg/FFprobe 7.1.1
+- 命令或命令手册章节：`docs/runbooks/commands.md` 的“本地全程可视化”
+- 输入和配置：规范源及 58 个候选；全片时间轴标记宽度 2 像素；`libx264 fast` / CRF 18；运行 `20260902_151709_978ded7_poc-video-global-timeline-2px`
+- 观察结果：
+  - 渲染清单状态为 `completed`，记录 Pass 34、Drive 24、事件标记 58 个、`marker_width_px=2`、输出画布 1280×840。
+  - `annotated_full.mp4` 为 92,965,399 字节，H.264 1280×840、30 FPS、16,995 帧/566.500 秒；AAC 为 26,557 帧/566.493 秒。完整解码无错误。
+  - `event_highlights.mp4` 为 86,378,507 字节，H.264 1280×840、12,180 帧/406.000 秒；AAC 为 19,083 帧/406.000 秒。完整解码无错误。
+  - 58 个中间片段逐一检查，全部为 1280×840、30 FPS、210 帧/7.000 秒，无异常片段。
+  - 源音轨和完整视频音轨的解码 framemd5 文件 SHA-256 均为 `6777E7139976AEBBC0FB297FD32BC2249EF90E3474E5197366C35DC58AAFC46B`；日志中非零 `dup_frames`、`drop_frames` 和 Fontconfig 之外错误均为 0。
+  - 人工查看 0.2、18、312.6、548、566.2 秒完整视频及第 1、29、58 个集锦抽帧，确认 2 像素红蓝线、白色指针、固定源时间和标题均正确。
+- 证据和产物：`artifacts/visualization/20260902_151709_978ded7_poc-video-global-timeline-2px/render_manifest.json`、`visualization.log`、`qa_frames/`、两份音轨 framemd5；`outputs/20260902_151709_978ded7_poc-video-global-timeline-2px/`
+- 输出 SHA-256：`annotated_full.mp4` 为 `373e4e70419bb72846cdadac9865878a14a1541660e0c1ee6ee36b432cbde42e`；`event_highlights.mp4` 为 `b2e3e770f72c25a016ac44c1c1f11aad4cb728d340bb0c33de97a063f1100cd6`。
+- 后续动作：步骤 06 使用该 2 像素正式运行进行 58 个候选和全片主观审查。

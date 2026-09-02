@@ -234,11 +234,11 @@ ssh chiron "cd /work7/y_pan/Code_repo/Ball_action_spotting && conda run -n balls
 
 ### 本地全程可视化——已验证
 
-当前审查版本的正式运行 ID 为 `20260902_144310_20ae1e5_poc-video-global-timeline`；该版本在事件置信度后显示固定事件时间码，并在源画面下方显示完整 566.5 秒的红蓝事件时间轴和白色动态播放指针。执行前已确认同名产物目录不存在。
+当前审查版本的正式运行 ID 为 `20260902_151709_978ded7_poc-video-global-timeline-2px`；该版本在事件置信度后显示固定事件时间码，并在源画面下方显示完整 566.5 秒的 2 像素红蓝事件时间轴和白色动态播放指针。执行前已确认同名产物目录不存在。
 
 ```powershell
 & 'C:\Users\logan\.conda\envs\ballspot-viz\python.exe' scripts/render_visualization.py `
-  --run-id 20260902_144310_20ae1e5_poc-video-global-timeline `
+  --run-id 20260902_151709_978ded7_poc-video-global-timeline-2px `
   --ffmpeg 'C:\Users\logan\.conda\envs\ballspot-viz\Library\bin\ffmpeg.exe' `
   --ffprobe 'C:\Users\logan\.conda\envs\ballspot-viz\Library\bin\ffprobe.exe'
 ```
