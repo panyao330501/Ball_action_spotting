@@ -53,5 +53,5 @@
 
 ## 对外共享材料
 
-- 2026-09-16：已根据教授要求整理 `docs/reports/ikoma_bas_share_summary_20260916.md`，供 Martin さん和根木さん了解当前 IKOMA BAS 推定结果、模型来源与结构、7-fold/TTA 推论流程、时序后处理设置、成果物和限制。
+- 2026-09-16：已根据教授要求整理 `docs/reports/ikoma_bas_share_summary_20260916.md`，并按用户反馈精简为英文共享稿，供 Martin 和根木了解当前 IKOMA BAS 预测结果、模型及关键推理设置；可视化视频和预测标签保留 Google Drive URL 占位。
 - 共享稿明确区分“模型候选”和“人工确认事件”，并注明 confidence 不是校准概率；在 GT 和逐事件主观审查完成前不报告 accuracy、precision、recall 或 mAP。
