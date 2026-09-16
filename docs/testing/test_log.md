@@ -340,3 +340,15 @@ Git 提交：
 - 证据和产物：`artifacts/visualization/20260902_151709_978ded7_poc-video-global-timeline-2px/render_manifest.json`、`visualization.log`、`qa_frames/`、两份音轨 framemd5；`outputs/20260902_151709_978ded7_poc-video-global-timeline-2px/`
 - 输出 SHA-256：`annotated_full.mp4` 为 `373e4e70419bb72846cdadac9865878a14a1541660e0c1ee6ee36b432cbde42e`；`event_highlights.mp4` 为 `b2e3e770f72c25a016ac44c1c1f11aad4cb728d340bb0c33de97a063f1100cd6`。
 - 后续动作：步骤 06 使用该 2 像素正式运行进行 58 个候选和全片主观审查。
+
+## 2026-09-16——T-DOC-001 IKOMA BAS 共享稿事实核对
+
+- 状态：通过（附一次因正式视频被重命名而触发的路径检查失败）
+- 端点和环境：本地 PowerShell；仓库工作区与正式推理/可视化产物
+- 检查内容：共享稿中的事件总数、分类数量、7-fold、TTA、有效预测帧数、后处理清单及可共享视频文件是否与实际 JSON/CSV/manifest 一致。
+- 观察结果：
+  - `events.csv`、推理清单和后处理清单交叉检查通过：共 58 个候选，Pass 34、Drive 24；fold 数为 7，horizontal flip TTA 为启用，有效预测为 14,097 帧。
+  - 首次文件存在性检查按生成时名称 `annotated_full.mp4` 查找而失败。检查目录后确认用户已将其重命名为 `ball_action_spotting_with_global_ bar.mp4`；文件大小仍为 92,965,399 字节。
+  - 重命名后完整视频 SHA-256 为 `373e4e70419bb72846cdadac9865878a14a1541660e0c1ee6ee36b432cbde42e`，与 T-VIZ-011 和渲染清单完全一致；事件集锦 SHA-256 亦保持 `b2e3e770f72c25a016ac44c1c1f11aad4cb728d340bb0c33de97a063f1100cd6`。
+  - 已将共享稿和步骤 06 固定输入改为当前实际文件名，历史渲染清单保持生成时记录不变。
+- 结论：共享稿中的数值、方法与当前可用成果物均可追溯；不把无 GT 候选误述为精度结果。

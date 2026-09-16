@@ -12,7 +12,7 @@
 ## 固定输入
 
 - 事件：`artifacts/inference/full_6835526/events.json`，Pass 34、Drive 24。
-- 完整审查视频：`outputs/20260902_151709_978ded7_poc-video-global-timeline-2px/annotated_full.mp4`。
+- 完整审查视频：`outputs/20260902_151709_978ded7_poc-video-global-timeline-2px/ball_action_spotting_with_global_ bar.mp4`（由原 `annotated_full.mp4` 重命名；SHA-256 不变）。
 - 事件集锦：`outputs/20260902_151709_978ded7_poc-video-global-timeline-2px/event_highlights.mp4`。
 - 渲染清单：`artifacts/visualization/20260902_151709_978ded7_poc-video-global-timeline-2px/render_manifest.json`。
 - 可见性和审查枚举遵循 `docs/data/label_and_artifact_contract.md`。
@@ -50,3 +50,8 @@
 - [ ] 形成进入步骤 07 的事实依据：接受 PoC、调整后处理、申请 GT、微调或更换模型。
 
 验收：审查记录完整，代表性样例和失败模式可由源时间复查，结论不超出当前无 GT 证据。
+
+## 对外共享材料
+
+- 2026-09-16：已根据教授要求整理 `docs/reports/ikoma_bas_share_summary_20260916.md`，供 Martin さん和根木さん了解当前 IKOMA BAS 推定结果、模型来源与结构、7-fold/TTA 推论流程、时序后处理设置、成果物和限制。
+- 共享稿明确区分“模型候选”和“人工确认事件”，并注明 confidence 不是校准概率；在 GT 和逐事件主观审查完成前不报告 accuracy、precision、recall 或 mAP。
