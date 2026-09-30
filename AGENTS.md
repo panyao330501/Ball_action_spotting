@@ -2,7 +2,7 @@
 
 ## 项目目标
 
-建立一套可复现的概念验证（PoC）流程：针对首次开球后约 10 分钟的视频检测 `Pass` 和 `Drive`，模型推理在 `chiron` 服务器执行，可视化视频在本地 Windows 机器生成。本阶段主要进行无 GT 的主观审查，判断模型在目标视频上的实际效果并识别明显失败模式。
+建立一套可复现的 Ball Action Spotting 流程：先针对 IKOMA 开球后约 10 分钟的视频检测 `Pass` 和 `Drive` 并进行无 GT 主观审查，再使用 U18 Veo 视频与 Bepro event data 做有 GT 的零样本验证。模型推理在 `chiron` 服务器执行，数据转换、评估和可视化在本地 Windows 机器执行。
 
 ## 项目拓扑
 
@@ -26,8 +26,8 @@
 
 ## 当前执行状态
 
-- 当前步骤：`06_visibility_and_subjective_review`
-- 当前步骤计划：`docs/plans/06_visibility_and_subjective_review.md`
+- 当前步骤：`07_u18_ground_truth_evaluation`
+- 当前步骤计划：`docs/plans/07_u18_ground_truth_evaluation.md`
 - 已完成部分：
   - 已创建项目文档结构。
   - 已确认本地输入视频存在。
@@ -52,9 +52,23 @@
   - 已完成两次 0～90 秒 7-fold Slurm 冒烟推理，原始分数和文件 SHA-256 均完全一致。
   - 已完成 566.5 秒本地叠加渲染与 58 个事件的上下文集锦；事件行同时显示置信度和固定事件时间码，画面下方具有完整 566.5 秒的 2 像素红蓝事件时间轴和动态播放指针，两份视频均通过完整解码、帧率/时长/音轨和代表性抽帧质检。
   - 已整理面向 Martin 和根木的简洁英文共享稿，汇总 IKOMA BAS 预测结果、模型及推理设置，并预留 Google Drive 成果物链接。
+  - 用户已粗略连续观看源视频并在 `BAS漏检.xlsx` 中记录 11 个较确定的远侧漏检种子（Pass 10、Drive 1）；受低像素和卡顿影响，该表明确不是完整 GT。
+  - 已实现本地 BAS-only 漏检候选生成器，联合低阈值集成峰值与 7-fold 分歧，同时预留可选的标准化 tracking 候选接口；当前 tracking 尚未提供且不参与本次结果。
+  - 已从全程稠密分数生成 199 个待审候选（Pass 81、Drive 118），合并为 36 个高/中优先级审查窗口；11 个漏检种子中 6 个被候选覆盖，该覆盖率仅用于流程检查。
+  - 已生成带右上角动态 `SOURCE HH:MM:SS.mmm` 比赛时间的 436.3 秒漏检候选集锦，完成全片解码、13,089 帧/36 中间片段结构检查及高、中优先级与种子漏检附近的代表性抽帧质检。
+  - 已核对 U18 两场四个半场视频及 8 份事件 XML 的身份、时长、帧数和 SHA-256；确认 `MATCH TIME` 为动作时间，后半场减 2700 秒。
+  - 已实现并正式运行 U18 GT 转换：全量 Pass 1654、Drive proxy 1192；排除首尾上下文和一条视频外事件后，可评估 Pass 1651、Drive proxy 1191。
+  - 已生成 50 条按四个半场平衡抽样的 `パス(受け手)`→`Drive` 人工语义审查表；该映射在人工确认前明确标记为 provisional。
+  - 已实现防标签泄漏的 U18 25 FPS 推理代理生成器、参数化 Slurm 推理入口和一对一时间匹配评估器；四段 12 秒 masked 代理通过 25 FPS/帧数/完整解码及人工遮罩检查。
 - 未完成部分：
   - 尚未对 58 个候选逐一标记可见性与主观审查状态。
-  - 尚未连续观看完整区间并记录明显可见漏检、画外不可观测区间和主要失败模式。
+  - 用户的粗略观看已记录部分明确漏检，但尚未完成穷举式连续审查，也未完整记录画外不可观测区间和主要失败模式。
+  - 尚未人工审查新生成的 36 个漏检候选窗口，并将确认结果回填为新增 annotation。
+  - tracking 数据当前效果不足且尚未交付；接口已预留，待 Martin 后续微调 tracking 模型后再接入。
+  - U18 四个完整半场 masked 推理代理正在生成，尚未完成全片解码和远端传输。
+  - 尚未在 `chiron` 对 U18 提交 7-fold/TTA Slurm 推理、取回原始分数并计算正式 GT 指标。
+  - 尚未人工审查 50 条 `パス(受け手)` 样本，因此 Drive 指标仍只能称为 provisional proxy。
+  - 尚未核实 Bepro Y 方向与摄像机侧，不能报告 near/mid/far 或“远侧 Recall”。
 
 当前步骤发生变化，或未完成事项被完成、新增、删除时，必须更新本节。
 
@@ -92,6 +106,7 @@
 | `docs/plans/04_full_remote_inference_and_postprocessing.md` | 完整视频的 Slurm 推理、原始分数验证和无损后处理的详细计划 | 步骤 04 活动期间持续维护；完成后冻结，事实纠错除外 |
 | `docs/plans/05_local_visualization_pipeline.md` | 本地事件叠加、完整审查视频、事件集锦和渲染质检的详细计划 | 步骤 05 活动期间持续维护；完成后冻结，事实纠错除外 |
 | `docs/plans/06_visibility_and_subjective_review.md` | 逐事件可见性、主观判定、连续漏检检查和失败模式汇总的详细计划 | 步骤 06 活动期间持续维护；完成后冻结，事实纠错除外 |
+| `docs/plans/07_u18_ground_truth_evaluation.md` | U18 Veo/Bepro GT 转换、防泄漏代理、零样本推理和正式评估计划 | 步骤 07 活动期间持续维护；完成后冻结，事实纠错除外 |
 | `docs/milestone.md` | 已完成工作和重大项目变化的追加式记录 | 完成步骤、重要交付物或重大变化后追加 |
 | `docs/testing/test_strategy.md` | 测试层级、质量门槛、验收标准和证据要求 | 架构、接口或验收标准变化时维护 |
 | `docs/testing/test_log.md` | 测试命令、环境、结果和产物引用的时间顺序记录 | 每次有意义的测试后追加，不得静默改写历史结果 |
@@ -101,6 +116,7 @@
 | `docs/model_sources/lromul_ball_action_2023.md` | 官方模型来源、手动下载记录、权重清单、哈希与兼容性证据 | 权重、来源、模型提交或兼容性结论变化时维护 |
 | `docs/reports/ikoma_bas_share_summary_20260916.md` | 面向 Martin 和根木的 IKOMA BAS 简洁英文共享稿 | 预测结果、模型、推理设置、共享链接或限制发生变化时维护 |
 | `configs/poc_video.yaml` | 本次 PoC 的源视频、完整处理区间和 25 FPS 推理输入配置 | 输入身份、时间边界或推理预处理变化时维护 |
+| `configs/u18_gt.yaml` | U18 四个半场的视频身份、XML 选择、时间映射、标签映射和 masked 代理配置 | U18 输入、映射、guard 或防泄漏策略变化时维护 |
 | `data/metadata/video_metadata.json` | 本地生成的源视频技术元数据与 SHA-256 | 源视频更换或重新测量时重建；不提交 Git |
 | `environment-viz.yml` | 本地视频检查、可视化和测试的 Conda 环境定义 | 本地依赖或 Python 兼容范围变化时维护 |
 | `environment-infer.yml` | 远端 GPU 推理及上游模型依赖的 Conda 环境定义 | 模型、PyTorch、CUDA 或解码方案变化时维护 |

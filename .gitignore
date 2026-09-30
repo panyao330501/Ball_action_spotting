@@ -12,6 +12,8 @@
 /ball_action/
 /artifacts/
 /outputs/
+/BAS漏检.xlsx
+/U18/
 
 # 模型权重和提取特征
 /weights/

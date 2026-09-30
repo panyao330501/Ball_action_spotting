@@ -1,0 +1,92 @@
+# U18 Veo + Bepro GT 数据契约。原始媒体与 XML 位于被 Git 忽略的 U18/。
+schema_version: 1
+dataset_id: "u18_bepro_20250405"
+source_root: "U18"
+model_context_guard_sec: 1.32
+
+event_mapping:
+  "パス":
+    label: "Pass"
+    status: "direct"
+  "パス(受け手)":
+    label: "Drive"
+    status: "provisional_receiver_proxy"
+
+inference_proxy:
+  fps: 25.0
+  width: 1280
+  height: 720
+  audio: false
+  # Veo/Bepro 动作标签位于 1920x1080 原片左下方。拿到无标签原片前，
+  # 先用不透明黑框遮住完整事件/球员标签区，避免 GT 泄漏。
+  mask_source_rect_px: [0, 925, 920, 155]
+  scale_filter: "lanczos"
+  video_codec: "libx264"
+  preset: "fast"
+  crf: 18
+  pixel_format: "yuv420p"
+
+expected_counts:
+  all:
+    Pass: 1654
+    Drive: 1192
+  evaluable:
+    Pass: 1651
+    Drive: 1191
+
+videos:
+  - video_id: "fc_tokyo_aomori_h1"
+    match_id: "fc_tokyo_u18_vs_aomori_yamada"
+    half: 1
+    match_time_offset_sec: 0.0
+    video_glob: "*FC 東京 U18 vs 青森山田高校 前半.mp4"
+    video_basename: "2025年4月5日 FC 東京 U18 vs 青森山田高校 前半.mp4"
+    video_size_bytes: 1548336788
+    video_sha256: "fc2b2475d127fd31e50f3bf34e12e6524fcc22d1a4d1ac4345fcc8c158011992"
+    duration_sec: 2766.233333
+    frame_count: 82987
+    event_xml_directory_glob: "*FC 東京*青森山田*Raw Event Data_XML"
+    event_xml_glob: "*_前半_イベント.xml"
+    proxy_basename: "fc_tokyo_aomori_h1_25fps_masked.mp4"
+
+  - video_id: "fc_tokyo_aomori_h2"
+    match_id: "fc_tokyo_u18_vs_aomori_yamada"
+    half: 2
+    match_time_offset_sec: 2700.0
+    video_glob: "*FC 東京 U18 vs 青森山田高校 後半.mp4"
+    video_basename: "2025年4月5日 FC 東京 U18 vs 青森山田高校 後半.mp4"
+    video_size_bytes: 1701155484
+    video_sha256: "1cdba8c583facb101fd8202bff3b65738212051e7df995ad54b42a11738cb5f3"
+    duration_sec: 3037.833333
+    frame_count: 91135
+    event_xml_directory_glob: "*FC 東京*青森山田*Raw Event Data_XML"
+    event_xml_glob: "*_後半_イベント.xml"
+    proxy_basename: "fc_tokyo_aomori_h2_25fps_masked.mp4"
+
+  - video_id: "urawa_ryutsu_h1"
+    match_id: "urawa_red_diamonds_u18_vs_ryutsu_kashiwa"
+    half: 1
+    match_time_offset_sec: 0.0
+    video_glob: "*浦和*流通*前半.mp4"
+    video_basename: "2025年4月5日 浦和レッドダイヤモンズ U18 vs 流通経済大学付属柏高等学校 前半.mp4"
+    video_size_bytes: 1933338696
+    video_sha256: "836ba32e6b748a46ae8550f4ed6d3f8b4b80d16d22e74cf8fd90ee84b1b72117"
+    duration_sec: 2716.966667
+    frame_count: 81509
+    event_xml_directory_glob: "*浦和*流通*Raw Event Data_XML"
+    event_xml_glob: "*_前半_イベント.xml"
+    proxy_basename: "urawa_ryutsu_h1_25fps_masked.mp4"
+
+  - video_id: "urawa_ryutsu_h2"
+    match_id: "urawa_red_diamonds_u18_vs_ryutsu_kashiwa"
+    half: 2
+    match_time_offset_sec: 2700.0
+    video_glob: "*浦和*流通*後半.mp4"
+    video_basename: "2025年4月5日 浦和レッドダイヤモンズ U18 vs 流通経済大学付属柏高等学校 後半.mp4"
+    video_size_bytes: 1757909115
+    video_sha256: "24b811900d263e99855ee43924628edb7e4ad69fa2a65f5389eb864e988989f3"
+    duration_sec: 3094.1
+    frame_count: 92823
+    event_xml_directory_glob: "*浦和*流通*Raw Event Data_XML"
+    event_xml_glob: "*_後半_イベント.xml"
+    proxy_basename: "urawa_ryutsu_h2_25fps_masked.mp4"

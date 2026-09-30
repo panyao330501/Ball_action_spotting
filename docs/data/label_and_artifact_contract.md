@@ -1,6 +1,6 @@
 # 标签和产物契约
 
-版本：0.2 草案
+版本：0.4 草案
 破坏性变更必须升级版本，并在决策日志中记录。
 
 ## 1. 标签
@@ -124,3 +124,96 @@ outputs/<run_id>/
 ```
 
 上述运行目录均被 Git 忽略，除非后续决策明确把小型、非敏感样例提升为测试夹具。
+
+## 8. 漏检候选记录
+
+漏检候选用于安排人工审查，不是模型正式预测，也不是 GT。候选可以由以下证据产生：
+
+- `ensemble_low_peak`：集成分数低于正式阈值但形成局部峰值。
+- `fold_disagreement`：至少一个 fold 形成较强峰值，但集成平均未形成正式事件。
+- `tracking_change`：可选的标准化 tracking 候选。当前 tracking 不可用时不得填充或推测该证据。
+
+候选至少保留：
+
+- `candidate_id`、`time_sec`、`timecode`、`frame_index`
+- `label` 和 `suggested_label`；只有 tracking 无类别候选可使用 `Unknown`，正式模型事件标签仍只能是 `Pass` / `Drive`
+- `ensemble_score`、`fold_mean_score`、`fold_max_score`、`fold_std_score`、`folds_above_official`
+- `evidence_sources`、`priority`、最近正式事件及时间差
+- 可选 `tracking_score`、`far_side_score`、`tracking_confidence`、`tracking_reason`
+- `review_status`、`human_label`、`corrected_time_sec`、`visibility` 和 `comment`
+
+候选未审查时，`review_status=unreviewed`，`human_label`、`corrected_time_sec` 和 `visibility` 留空；不得自动写成 `VISIBLE`。人工审查后，`human_label` 可取 `Pass`、`Drive`、`No action` 或 `Ambiguous`。
+
+### 标准化 tracking 候选接口
+
+候选生成器接受可选 CSV 或 JSON 列表，字段如下：
+
+| 字段 | 要求 |
+| --- | --- |
+| `time_sec` | 必填；与规范源视频零点一致 |
+| `label` | 可空；允许 `Pass`、`Drive`、`Unknown`，空值按 `Unknown` |
+| `tracking_score` | 必填；`[0, 1]` |
+| `far_side_score` | 可空；`[0, 1]` |
+| `tracking_confidence` | 可空；`[0, 1]` |
+| `reason` | 可空；保留触发原因 |
+
+该接口是 Martin 原始 tracking 输出之后的适配边界。原始 tracking 数据不得在字段语义未确认时直接接入。
+
+### 候选运行目录
+
+```text
+artifacts/candidate_mining/<run_id>/
+  manifest.json
+  candidates.json
+  candidates.csv
+  review_windows.json
+  review_windows.csv
+  seed_coverage.json
+
+artifacts/candidate_review/<run_id>/
+  candidate_review_manifest.json
+  candidate_review.log
+  candidate_clips/
+
+outputs/<run_id>/
+  miss_candidate_highlights.mp4
+```
+
+候选集锦必须同时显示窗口源时间范围、逐帧变化的 `SOURCE HH:MM:SS.mmm` 和每条候选的固定 `event HH:MM:SS.mmm`。动态 `SOURCE` 时间按“窗口 `source_start_sec` + 当前片段 PTS”计算；集锦拼接后的累计播放时间不得冒充源视频时间。
+
+## 9. U18 Bepro Ground Truth
+
+U18 正式评估只读取每支球队、每个半场的一份 `*_イベント.xml`。`*_チーム.xml` 与 `*_選手.xml` 是相同事件的重排，禁止作为额外 GT 重复计数。
+
+时间与边界：
+
+- 动作时刻来自标签 `MATCH TIME`，不得使用 XML `start/end`；后者是约十秒审查窗口。
+- 前半场 `source_time_sec = MATCH TIME`；后半场 `source_time_sec = MATCH TIME - 2700`。
+- 视频外事件保留在全量 GT，但 `evaluation_status=excluded`，不得截到视频边界。
+- 33 帧、步长 2、25 FPS 模型在首尾各使用 `1.32` 秒上下文 guard；guard 内 GT 不进入正式评估分母。
+
+标签映射：
+
+- Bepro `パス` 映射为 `Pass`，成功与失败均计入。
+- Bepro `パス(受け手)` 暂映射为 `Drive`，`mapping_status=provisional_receiver_proxy`；完成人工语义审查前，不得省略 proxy/provisional 限定。
+- `ドリブル突破`、`スペースへのドリブル` 不直接映射为本模型的 `Drive`。
+
+每条 U18 GT 至少保留：`event_id`、`video_id`、`match_id`、`half`、`source_time_sec`、`match_time_sec`、`label`、`mapping_status`、原始 Bepro code、team/player、`x/y/to_x/to_y`、pass result、`evaluation_status`、排除原因及源 XML/事件 ID。
+
+原始 Veo 视频底部含 Bepro 动作标签，会向模型泄漏答案。推理输入必须使用无叠加原片，或在重采样前用不透明遮罩完整覆盖事件/球员标签区；masked 结果必须明确标记其视野损失，不得与 clean-video 基准混称。
+
+U18 产物目录：
+
+```text
+artifacts/u18_ground_truth/<run_id>/
+  manifest.json
+  gt_events_all.json
+  gt_events_all.csv
+  gt_events_evaluable.json
+  gt_events_evaluable.csv
+  drive_mapping_audit.csv
+
+artifacts/u18_evaluation/<run_id>/
+  metrics.json
+  matches_at_1s.csv
+```

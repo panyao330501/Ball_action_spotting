@@ -360,3 +360,97 @@ Git 提交：
 - 检查内容：按用户反馈检查共享稿语言、篇幅、必要技术信息和外部链接占位。
 - 观察结果：共享稿已改为英文，保留 58 个候选（Pass 34、Drive 24）、模型、7-fold/TTA、输入及时序后处理设置；可视化视频和预测标签各有一个未填写的 Google Drive URL 占位；无本地绝对路径或内部运行清单。
 - 结论：共享稿可在用户补充两个 Google Drive URL 后直接发送。
+
+## 2026-09-29——T-CAND-001 漏检候选与 tracking 接口单元测试
+
+- 状态：通过
+- Git 提交：`ee66a96` 加未提交候选生成、渲染和测试实现
+- 端点和环境：本地 `ballspot-viz`；Python 3.11；SciPy 1.17.1；openpyxl 3.1.5
+- 检查内容：静态编译及完整 pytest；覆盖低阈值峰值、fold 分歧、正式事件排除、重叠窗口合并、Excel 前向填充、种子覆盖、tracking `Unknown` 标签接口和候选渲染文字。
+- 观察结果：初版 17 项测试通过；窗口合并逻辑细化为“上下文窗口重叠”并增加 tracking 解析与 tracking-only 并集测试后，最终 20 项测试全部通过。
+- 结论：候选生成核心规则和可选 tracking 边界通过本地单元测试。
+
+## 2026-09-29——T-CAND-002 全程 BAS-only 候选生成
+
+- 状态：通过
+- 端点和环境：本地 `ballspot-viz`；输入为 `artifacts/inference/full_6835526/scores.npz`、正式事件和只读 `BAS漏检.xlsx`；未提供 tracking。
+- 参数：Gaussian `sigma=3.0`；集成最低峰值 `0.05`；高优先级峰值 `0.12`；正式阈值/fold 峰值 `0.2`；同类正式事件排除窗口 `±1.0` 秒；峰值间距 15 帧。
+- 观察结果：初版运行产生相同 199 个候选，但按候选时间差合并为 59 个窗口/514.64 秒；改为合并重叠上下文且限制单窗最长 15 秒后，正式运行 `20260929_153408_ee66a96_bas-miss-candidates-v2` 生成 199 个候选（Pass 81、Drive 118；高 76、中 123）、36 个窗口/436.32 秒。
+- 种子检查：11 个用户确认的远侧漏检中 6 个在同类 `±1.0` 秒内被覆盖，覆盖率 54.5%；报告明确该数值不是正式 Recall。
+- 证据：`artifacts/candidate_mining/20260929_153408_ee66a96_bas-miss-candidates-v2/`。
+
+## 2026-09-29——T-CAND-003 候选集锦烟雾渲染
+
+- 状态：通过
+- 端点和环境：本地 `ballspot-viz`；FFmpeg/FFprobe 7.1.1；`ultrafast` / CRF 23。
+- 输入：候选初版前 3 个高优先级窗口；运行 `smoke_20260929_153122_candidate-review-v1`。
+- 观察结果：3 个窗口分别精确编码并拼接为 29.600 秒、888 帧、1280×720、30 FPS H.264 视频，含 AAC 48 kHz 双声道音轨。抽查三段画面确认窗口优先级、源时间、候选 ID、类别、BAS 分数、fold 最高分和证据来源可读；无空间框。
+- 输出 SHA-256：`e716139700d70ca7d10a59ddd8197c614425213d7dc078887510e1fe09209c1d`。
+
+## 2026-09-29——T-CAND-004 正式漏检候选集锦和技术质检
+
+- 状态：通过
+- 端点和环境：本地 `ballspot-viz`；FFmpeg/FFprobe 7.1.1；`libx264 fast` / CRF 18。
+- 输入：正式候选运行 `20260929_153408_ee66a96_bas-miss-candidates-v2` 的全部 36 个高/中优先级窗口；运行 `20260929_153438_ee66a96_bas-miss-review-v1`。
+- 观察结果：36 个中间片段全部生成；最终视频为 H.264 1280×720、30 FPS、13,089 帧/436.300 秒，AAC 48 kHz 双声道约 436.293 秒。预期帧数与实际帧数均为 13,089，完整视频解码无错误。
+- 人工抽查：查看开头、高优先级第 16 窗、中优先级开头、用户 120.300 秒漏检附近及结尾画面；标题、类别颜色、分数、证据和固定源时间均清晰，密集窗口使用 `+N more` 避免文字溢出。
+- 证据：`artifacts/candidate_review/20260929_153438_ee66a96_bas-miss-review-v1/` 及其 `qa_frames/`；`outputs/20260929_153438_ee66a96_bas-miss-review-v1/miss_candidate_highlights.mp4`。
+- 输出 SHA-256：`b37f8e8e6c2cc378ce771462a0097e2a5286dd9413b6e0b21bbc72b34e2d1342`。
+
+## 2026-09-30——T-CAND-005 候选集锦动态源时间修订
+
+- 状态：通过
+- 端点和环境：本地 `ballspot-viz`；Python 3.11；FFmpeg/FFprobe 7.1.1；`libx264 fast` / CRF 18。
+- 自动化检查：静态编译通过，完整 pytest 为 20 项全部通过；滤镜测试明确断言窗口源起点被写入 `SOURCE %{pts:hms:offset}` 动态时间表达式。
+- 烟雾检查：运行 `smoke_20260930_dynamic-source-time-v1` 生成首个窗口 384 帧/12.800 秒视频；窗口源起点为 `00:00:10.800`，片段 0.5、5.5、11.5 秒处分别显示 `00:00:11.300`、`00:00:16.300`、`00:00:22.300`。
+- 正式输入：候选运行 `20260929_153408_ee66a96_bas-miss-candidates-v2` 的 36 个高/中优先级窗口；正式渲染运行 `20260930_141315_ee66a96_bas-miss-review-timecode-v2`。
+- 技术检查：最终视频为 H.264 1280×720、30 FPS、13,089 帧/436.300 秒，AAC 48 kHz 双声道 436.305 秒；容器时长 436.321 秒。完整音视频解码无错误，36 个中间片段全部存在，逐片检查分辨率、帧率、音轨和预期帧数均无失败；滤镜清单包含 36 个动态 `SOURCE` 时间表达式。
+- 人工抽查：检查第 1、16、26、29、36 窗，覆盖高优先级、中优先级、用户 `00:02:00.300` 漏检附近和结尾。右上角当前源时间均落在窗口范围内并与固定 `event` 时间可直接对照；因 30 FPS 帧边界产生的最大显示差不超过一帧。
+- 证据：`artifacts/candidate_review/20260930_141315_ee66a96_bas-miss-review-timecode-v2/` 及其 `qa_frames/`；`outputs/20260930_141315_ee66a96_bas-miss-review-timecode-v2/miss_candidate_highlights.mp4`。
+- 输出 SHA-256：`dab3bb245b1d948975945dc4e4d31b463989c57ace4daf173e682b276a52ded2`。
+
+## 2026-09-30——T-U18-001 U18 GT/代理/评估单元测试
+
+- 状态：通过（修复两项首轮失败后）
+- 端点和环境：本地 `ballspot-viz`；Python 3.11；pytest。
+- 首轮失败 1：后半场 `2734.715 - 2700` 产生 `34.715000000000146` 浮点尾差；转换器改为写出前保留 6 位小数。
+- 首轮失败 2：代理生成器把未传 `--video-id` 的空选择误判为未知 ID；修正为空时处理全部四个视频。该次失败发生在编码前，只创建空运行目录，没有生成媒体。
+- 最终结果：`python -m pytest -q` 为 28 项全部通过；新增测试覆盖半场时间换算、guard/视频外排除、50 条平衡审查抽样、遮罩先于缩放和 25 FPS 重采样、一对一匹配与 AP。
+
+## 2026-09-30——T-U18-002 正式 Bepro GT 转换
+
+- 状态：通过
+- 端点和环境：本地 `ballspot-viz`；输入为 U18 四段视频和 8 份 `*_イベント.xml`。
+- 输出：`artifacts/u18_ground_truth/20260930_u18_bepro_gt_v1/`。
+- 结果：全量 Pass 1654、Drive proxy 1192；可评估 Pass 1651、Drive proxy 1191。排除项为 guard 起点 2 条、guard 终点 1 条、视频外 1 条；没有截断或移动 GT 时间。
+- Drive 审查表共 50 条，四个半场分别为 13、13、12、12 条，初始状态全部为 `unreviewed`。
+
+## 2026-09-30——T-U18-003 防标签泄漏代理烟雾测试
+
+- 状态：通过
+- 端点和环境：本地 `ballspot-viz`；FFmpeg/FFprobe 7.1.1。
+- 输入：四个 U18 半场各自开头 12 秒；遮罩源坐标 `[0,925,920,155]` 后缩放至 1280×720，再重采样为 25 FPS CFR，无音频。
+- 输出：`data/u18_inference_smoke_20260930_v2/`。
+- 结果：四段代理均为 H.264 1280×720、25 FPS、300 帧/12.000 秒，逐段完整解码无错误；人工查看约 10 秒帧，确认底部事件/球员标签完全不可见，顶部比分和比赛时间保留，时间零点未裁剪。
+- 限制：遮罩同时损失左下部分比赛画面，因此结果必须标记为 masked-video benchmark；仍应优先申请无叠加的干净 Veo 原片。
+
+## 2026-09-30——T-U18-004 Windows CLI 帮助编码检查
+
+- 状态：通过（记录一次修复前失败）
+- 端点和环境：本地 Windows PowerShell；终端代码页 CP932。
+- 首次结果：GT 与评估脚本 `--help` 正常，代理脚本的两条中文参数说明触发 `UnicodeEncodeError`；不影响实际代理生成。
+- 修复：把 `--video-id` 与 `--end-sec` 的帮助文本改为 ASCII 英文；三个新脚本随后均能以退出码 0 打印帮助。
+
+## 2026-09-30——T-U18-005 Slurm 脚本静态语法检查
+
+- 状态：通过（附一次本地 WSL 环境失败）
+- 首次结果：Windows 系统 `bash.exe` 因 `Bash/Service/CreateInstance/E_ACCESSDENIED` 无法启动，未执行到脚本解析，属于本机 WSL 环境失败。
+- 替代检查：使用 `C:\Program Files\Git\bin\bash.exe -n scripts/slurm/u18_inference.sh`，退出码为 0。
+- 后续动作：代码同步到 `chiron` 后再用远端 Bash 复核，并以实际 `sbatch` 冒烟作业作为最终运行证据。
+
+## 2026-09-30——T-U18-006 最终本地静态与回归检查
+
+- 状态：通过（记录一次命令写法失败）
+- 首次静态命令：`python -m py_compile scripts/*.py`；PowerShell 未展开通配符，Python 报 `[Errno 22] Invalid argument: 'scripts/*.py'`，未形成源码失败结论。
+- 替代静态命令：`python -m compileall -q scripts tests`，退出码 0。
+- 回归结果：`python -m pytest -q` 为 28 项全部通过；完整代理编码并行占用 CPU 时耗时约 57 秒。

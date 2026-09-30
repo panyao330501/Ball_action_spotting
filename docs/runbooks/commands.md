@@ -262,3 +262,89 @@ ssh chiron "cd /work7/y_pan/Code_repo/Ball_action_spotting && conda run -n balls
   --preset ultrafast `
   --crf 23
 ```
+
+### 本地生成 BAS-only 漏检候选——已验证
+
+以下命令读取既有全程分数、正式事件和用户记录的漏检种子，不重新运行 GPU 推理；`BAS漏检.xlsx` 只读且被 Git 忽略。当前未传入 tracking 文件，运行清单记录 `tracking_status=not_provided`。
+
+```powershell
+& 'C:\Users\logan\.conda\envs\ballspot-viz\python.exe' scripts/generate_miss_candidates.py `
+  --scores 'artifacts/inference/full_6835526/scores.npz' `
+  --inference-manifest 'artifacts/inference/full_6835526/manifest.json' `
+  --events 'artifacts/inference/full_6835526/events.json' `
+  --seed-misses 'BAS漏检.xlsx' `
+  --run-id '20260929_153408_ee66a96_bas-miss-candidates-v2'
+```
+
+标准化 tracking 候选可在未来通过 `--tracking-candidates <CSV-or-JSON>` 加入；字段契约见 `docs/data/label_and_artifact_contract.md`。
+
+### 本地渲染漏检候选集锦——已验证
+
+```powershell
+& 'C:\Users\logan\.conda\envs\ballspot-viz\python.exe' scripts/render_miss_candidate_highlights.py `
+  --candidate-dir 'artifacts/candidate_mining/20260929_153408_ee66a96_bas-miss-candidates-v2' `
+  --run-id '20260930_141315_ee66a96_bas-miss-review-timecode-v2' `
+  --preset fast `
+  --crf 18 `
+  --ffmpeg 'C:\Users\logan\.conda\envs\ballspot-viz\Library\bin\ffmpeg.exe' `
+  --ffprobe 'C:\Users\logan\.conda\envs\ballspot-viz\Library\bin\ffprobe.exe'
+```
+
+该命令按高、中优先级生成 36 个合并窗口和一份 436.3 秒集锦；右上角动态 `SOURCE HH:MM:SS.mmm` 由窗口源视频起点加当前片段 PTS 计算，可与候选行固定 `event` 时间直接对照。不会绘制空间框或声称 tracking 已接入。
+
+## 8. U18 Veo/Bepro GT 评估
+
+### 转换正式 GT——已验证
+
+```powershell
+& 'C:\Users\logan\.conda\envs\ballspot-viz\python.exe' scripts/prepare_u18_ground_truth.py `
+  --config configs/u18_gt.yaml `
+  --source-root U18 `
+  --output-dir artifacts/u18_ground_truth/20260930_u18_bepro_gt_v1
+```
+
+该命令验证四段视频 SHA-256，只读取 8 份 `*_イベント.xml`，并拒绝覆盖已有输出目录。
+
+### 四段 12 秒 masked 代理烟雾——已验证
+
+```powershell
+& 'C:\Users\logan\.conda\envs\ballspot-viz\python.exe' scripts/prepare_u18_inference_proxies.py `
+  --config configs/u18_gt.yaml `
+  --source-root U18 `
+  --output-root data/u18_inference_smoke_20260930_v2 `
+  --ffmpeg 'C:\Users\logan\.conda\envs\ballspot-viz\Library\bin\ffmpeg.exe' `
+  --ffprobe 'C:\Users\logan\.conda\envs\ballspot-viz\Library\bin\ffprobe.exe' `
+  --end-sec 12
+```
+
+### 生成四个完整 masked 代理——模板（正式运行完成后再改为已验证）
+
+```powershell
+& 'C:\Users\logan\.conda\envs\ballspot-viz\python.exe' scripts/prepare_u18_inference_proxies.py `
+  --config configs/u18_gt.yaml `
+  --source-root U18 `
+  --output-root data/u18_inference_20260930_masked_v1 `
+  --ffmpeg 'C:\Users\logan\.conda\envs\ballspot-viz\Library\bin\ffmpeg.exe' `
+  --ffprobe 'C:\Users\logan\.conda\envs\ballspot-viz\Library\bin\ffprobe.exe'
+```
+
+### 提交单个 U18 半场推理——模板
+
+以下四个参数依次为远端代理、远端逐视频配置、结束秒和新输出目录。GPU 推理只能通过 Slurm 提交。
+
+```powershell
+ssh chiron 'cd /work7/y_pan/Code_repo/Ball_action_spotting && sbatch scripts/slurm/u18_inference.sh <VIDEO> <CONFIG> <END_SEC> <OUTPUT_DIR>'
+```
+
+### U18 正式评估——模板
+
+每个 `<PREDICTIONS_ROOT>/<video_id>/events.json` 应由对应半场原始分数以 `min_height=0` 生成，评估器再独立使用 `0.2` 操作阈值。
+
+```powershell
+& 'C:\Users\logan\.conda\envs\ballspot-viz\python.exe' scripts/evaluate_u18_predictions.py `
+  --ground-truth artifacts/u18_ground_truth/20260930_u18_bepro_gt_v1/gt_events_evaluable.json `
+  --predictions-root artifacts/u18_predictions/<RUN_ID> `
+  --output-dir artifacts/u18_evaluation/<RUN_ID> `
+  --tolerances 0.5,1.0,2.0 `
+  --operating-threshold 0.2
+```
