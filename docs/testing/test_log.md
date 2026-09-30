@@ -454,3 +454,13 @@ Git 提交：
 - 首次静态命令：`python -m py_compile scripts/*.py`；PowerShell 未展开通配符，Python 报 `[Errno 22] Invalid argument: 'scripts/*.py'`，未形成源码失败结论。
 - 替代静态命令：`python -m compileall -q scripts tests`，退出码 0。
 - 回归结果：`python -m pytest -q` 为 28 项全部通过；完整代理编码并行占用 CPU 时耗时约 57 秒。
+
+## 2026-09-30——T-U18-007 首次远端 Slurm 冒烟启动
+
+- 状态：失败；已定位并修复入口，待替代作业验证
+- Git 提交：`a654379e6918ec39e1a85406b24d6594844368b9`
+- 作业：`6857087`，`ballspot-u18`，90 秒、7-fold/TTA；分配到计算节点 `nevera`。
+- 输入：`fc_tokyo_aomori_h1_25fps_masked.mp4`；本地/远端 SHA-256 均为 `4ac0f31b783d05194c8a57bfdc07172e8332f83c66bd5f75c0334fc3bc303c22`。
+- 结果：作业 1 秒内 `FAILED`，`ExitCode=127:0`；stderr 为 `/work7/y_pan/anaconda3/bin/conda: cannot execute: required file not found`。模型、视频和 CUDA 尚未启动。
+- 原因：该 `conda` 包装器 shebang 指向计算节点不可见的 `/home/y_pan/workspace7/anaconda3/bin/python`。
+- 修复：U18 Slurm 入口改为直接调用同一环境的 `/work7/y_pan/anaconda3/envs/ballspot-infer/bin/python`；失败日志保留，不删除原作业记录。

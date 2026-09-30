@@ -105,3 +105,11 @@
 - 决策：以 `MATCH TIME` 作为动作时刻，后半场减 2700 秒；只读取 `*_イベント.xml`；`パス` 直接映射为 `Pass`，`パス(受け手)` 暂作为 `Drive` proxy 并抽取 50 条人工审查。原视频自带的 Bepro 动作标签必须从模型输入中移除；在没有干净 Veo 原片时，先使用不透明左下遮罩的 25 FPS masked 基准。
 - 理由：这批数据可提供比 IKOMA 粗略漏检种子完整得多的 GT，但原视频的动作文字会造成直接答案泄漏，且 Bepro 接球定义与模型 `Drive` 不能未经验证视为完全等价。
 - 影响：正式指标排除视频外及模型首尾上下文 guard 内事件；Pass 可直接报告，Drive 必须带 provisional/proxy 限定。masked 与未来 clean 结果分开保存和命名，第一轮固定模型与后处理，不在测试比赛上调参。
+
+## D-014——U18 Slurm 作业直接调用规范 Conda 环境 Python
+
+- 日期：2026-09-30
+- 状态：已接受
+- 决策：U18 Slurm 入口使用 `/work7/y_pan/anaconda3/envs/ballspot-infer/bin/python`，不经 `/work7/y_pan/anaconda3/bin/conda run` 包装。
+- 理由：登录节点上的 `conda` 脚本 shebang 固定为 `/home/y_pan/workspace7/anaconda3/bin/python`；作业 6857087 所在计算节点没有该路径，模型启动前即以 127 失败。`/work7` 下环境 Python 是同一 Conda 环境的计算节点可见规范路径。
+- 影响：环境内容和依赖不变，只修正计算节点启动路径；后续必须通过 Slurm 冒烟确认 CUDA、模型和视频实际可读。

@@ -17,7 +17,7 @@
 - 已验证的远端算力：8 张 NVIDIA RTX A6000，每张约 48 GB
 - 远端职责：模型环境、权重保存、GPU 推理和原始预测生成
 - 远端 Conda：`/work7/y_pan/anaconda3/bin/conda`
-- 远端推理环境：`/home/y_pan/workspace7/anaconda3/envs/ballspot-infer`
+- 远端推理环境：`/work7/y_pan/anaconda3/envs/ballspot-infer`（计算节点使用该规范路径；登录节点上的 `/home/y_pan/workspace7/anaconda3/envs/ballspot-infer` 解析到同一环境）
 - 源代码同步：GitHub 仅同步代码、配置和文档
 - GitHub 远端：`https://github.com/panyao330501/Ball_action_spotting.git`
 - 大文件：视频、权重、特征和生成产物不得提交到 GitHub，必须单独传输并校验哈希

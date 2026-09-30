@@ -26,7 +26,7 @@ mkdir -p "$repo_root/artifacts/inference"
 export CRYPTOGRAPHY_OPENSSL_NO_LEGACY=1
 export PYTHONPATH="$repo_root/third_party/ball-action-spotting${PYTHONPATH:+:$PYTHONPATH}"
 
-/work7/y_pan/anaconda3/bin/conda run -n ballspot-infer python scripts/run_custom_inference.py \
+/work7/y_pan/anaconda3/envs/ballspot-infer/bin/python scripts/run_custom_inference.py \
   --video "$video" \
   --config "$config" \
   --weights-root "$repo_root/ball_action/experiments" \
