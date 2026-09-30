@@ -25,19 +25,19 @@
 - [x] 记录四段视频的大小、时长、帧数和 SHA-256。
 - [x] 在 `configs/u18_gt.yaml` 固定视频、XML、时间偏移、映射、guard 和期望事件数量。
 - [x] 实现 `scripts/prepare_u18_ground_truth.py`，输出全量/可评估 GT JSON+CSV、源清单和 50 条 Drive 映射审查表。
-- [ ] 运行正式转换并核对 `Pass=1651`、`Drive proxy=1191` 的可评估数量。
+- [x] 正式空间版运行 `20260930_u18_bepro_gt_spatial_v2` 核对 `Pass=1651`、`Drive proxy=1191`；其中 far 为 Pass 634、Drive proxy 491。
 
 ### 2. 防标签泄漏的推理输入
 
 - [x] 实现 `scripts/prepare_u18_inference_proxies.py`，先遮罩再缩放为 1280×720/25 FPS/CFR/无音频，并为每段代理生成带 SHA-256 的独立推理配置。
-- [ ] 对代表性短片做遮罩、时间零点、帧率和画质烟雾检查。
+- [x] 四个半场各 12 秒 masked 代理通过遮罩、时间零点、25 FPS/300 帧、完整解码和代表帧人工检查。
 - [ ] 生成四个完整半场代理并逐一 FFprobe/完整解码；若取得干净 Veo 原片，新增 clean 基准且不覆盖 masked 基准。
 
 ### 3. 零样本远端推理与后处理
 
 - [x] 新增参数化 Slurm 入口 `scripts/slurm/u18_inference.sh`。
 - [ ] 经 GitHub 同步代码，单独传输四个代理和配置并校验 SHA-256。
-- [ ] 先提交一段 60～90 秒的 7-fold/TTA 冒烟作业；通过后提交四个完整半场作业。
+- [x] 90 秒 7-fold/TTA 作业 `6857091` 通过：2,217 帧、7×2 fold 分数、预测覆盖 1.32～89.96 秒；已放行首个完整半场作业 `6857094`。
 - [ ] 保留每帧各 fold 和集成原始分数；后处理以 `min_height=0` 输出用于 AP 排序的局部峰，再用 `0.2` 作为既有操作阈值。
 
 ### 4. 正式指标与错例
@@ -45,7 +45,7 @@
 - [x] 实现 `scripts/evaluate_u18_predictions.py`，按视频/类别做置信度排序的一对一时间匹配。
 - [ ] 报告 `±0.5/1/2s` 的分类 AP、mAP、操作阈值下 Precision/Recall/F1，以及 TP 时间误差中位数/P90。
 - [ ] 输出 `matches_at_1s.csv`，供 FP/FN 集锦与人工确认使用。
-- [ ] 在核实 Bepro Y 方向和摄像机侧后增加 near/mid/far 分层；未核实前不声称“远侧 Recall”。
+- [x] 人工检查四个半场各一组 `Y≈0/Y≈1` 极端事件，确认 `Y≈0` 为摄像机近侧、`Y≈1` 为远侧；按三等分增加 GT near/mid/far Recall。预测没有空间坐标，因此不报告分带 Precision/AP。
 
 ### 5. 防止调参泄漏与结论
 

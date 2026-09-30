@@ -47,7 +47,10 @@ def test_average_precision_penalizes_high_confidence_false_positive() -> None:
 
 def test_evaluate_group_reports_recall_and_map() -> None:
     truth = [gt("a", 10.0, "Pass"), gt("b", 20.0, "Drive")]
+    truth[0]["distance_band"] = "far"
+    truth[1]["distance_band"] = "near"
     predictions = [prediction(10.4, 0.9, "Pass"), prediction(20.2, 0.8, "Drive")]
     metrics = evaluator.evaluate_group(truth, predictions, [0.5, 1.0], 0.2)
     assert metrics["tolerances"]["0.5"]["map"] == 1.0
     assert metrics["tolerances"]["1"]["classes"]["Drive"]["recall"] == 1.0
+    assert metrics["tolerances"]["1"]["recall_by_gt_distance_band"]["Pass"]["far"]["recall"] == 1.0

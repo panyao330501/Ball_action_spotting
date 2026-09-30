@@ -35,6 +35,7 @@ GT_FIELDS = (
     "y",
     "to_x",
     "to_y",
+    "distance_band",
     "pass_result",
     "annotation_window_start_sec",
     "annotation_window_end_sec",
@@ -115,11 +116,24 @@ def evaluation_status(source_time: float, duration: float, guard: float) -> tupl
     return "evaluable", ""
 
 
+def distance_band(y: float | None, spatial: dict[str, Any]) -> str:
+    if y is None:
+        return "unknown"
+    if not 0.0 <= y <= 1.0:
+        raise ValueError(f"Bepro Y 超出 [0, 1]：{y}")
+    if y < float(spatial["near_max_exclusive"]):
+        return "near"
+    if y >= float(spatial["far_min_inclusive"]):
+        return "far"
+    return "mid"
+
+
 def parse_event_xml(
     xml_path: Path,
     source_root: Path,
     video: dict[str, Any],
     mapping: dict[str, dict[str, str]],
+    spatial: dict[str, Any],
     guard: float,
 ) -> list[dict[str, Any]]:
     root = ET.parse(xml_path).getroot()
@@ -136,6 +150,8 @@ def parse_event_xml(
         status, reason = evaluation_status(
             source_time, float(video["duration_sec"]), guard
         )
+        x = optional_float(labels.get("X"))
+        y = optional_float(labels.get("Y"))
         event = {
             "event_id": "",
             "video_id": video["video_id"],
@@ -151,10 +167,11 @@ def parse_event_xml(
             "team": labels.get("TEAM", ""),
             "player": labels.get("PLAYER", ""),
             "shirt_number": labels.get("SHIRT NUMBER", ""),
-            "x": optional_float(labels.get("X")),
-            "y": optional_float(labels.get("Y")),
+            "x": x,
+            "y": y,
             "to_x": optional_float(labels.get("TO X")),
             "to_y": optional_float(labels.get("TO Y")),
+            "distance_band": distance_band(y, spatial),
             "pass_result": labels.get("パス 結果", ""),
             "annotation_window_start_sec": optional_float(instance.findtext("start")),
             "annotation_window_end_sec": optional_float(instance.findtext("end")),
@@ -224,6 +241,7 @@ def main() -> None:
         raise ValueError("--drive-audit-size 必须大于 0")
 
     mapping = config["event_mapping"]
+    spatial = config["spatial_bands"]
     guard = float(config["model_context_guard_sec"])
     all_events: list[dict[str, Any]] = []
     source_inventory: list[dict[str, Any]] = []
@@ -247,7 +265,7 @@ def main() -> None:
                 f"{video['video_id']} 应有两份球队事件 XML，实际为 {len(xml_paths)}"
             )
         for xml_path in xml_paths:
-            all_events.extend(parse_event_xml(xml_path, source_root, video, mapping, guard))
+            all_events.extend(parse_event_xml(xml_path, source_root, video, mapping, spatial, guard))
         source_inventory.append(
             {
                 "video_id": video["video_id"],
@@ -305,6 +323,7 @@ def main() -> None:
         "event_time_source": "MATCH TIME; second half subtracts 2700 seconds",
         "model_context_guard_sec": guard,
         "event_mapping": mapping,
+        "spatial_bands": spatial,
         "counts_all": actual_all,
         "counts_evaluable": actual_evaluable,
         "excluded_by_reason": dict(sorted(excluded.items())),

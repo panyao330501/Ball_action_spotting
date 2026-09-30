@@ -198,7 +198,9 @@ U18 正式评估只读取每支球队、每个半场的一份 `*_イベント.xm
 - Bepro `パス(受け手)` 暂映射为 `Drive`，`mapping_status=provisional_receiver_proxy`；完成人工语义审查前，不得省略 proxy/provisional 限定。
 - `ドリブル突破`、`スペースへのドリブル` 不直接映射为本模型的 `Drive`。
 
-每条 U18 GT 至少保留：`event_id`、`video_id`、`match_id`、`half`、`source_time_sec`、`match_time_sec`、`label`、`mapping_status`、原始 Bepro code、team/player、`x/y/to_x/to_y`、pass result、`evaluation_status`、排除原因及源 XML/事件 ID。
+每条 U18 GT 至少保留：`event_id`、`video_id`、`match_id`、`half`、`source_time_sec`、`match_time_sec`、`label`、`mapping_status`、原始 Bepro code、team/player、`x/y/to_x/to_y`、`distance_band`、pass result、`evaluation_status`、排除原因及源 XML/事件 ID。
+
+2026-09-30 人工检查四个半场各一组 `Y≈0/Y≈1` 的极端事件后，确认 Bepro `Y≈0` 对应摄像机近侧、`Y≈1` 对应远侧。GT 使用 `[0, 1/3)`=`near`、`[1/3, 2/3)`=`mid`、`[2/3, 1]`=`far`。BAS 预测没有空间坐标，因此只允许按 GT band 报告 Recall；不得把无空间归属的误检用于伪造分带 Precision 或 AP。
 
 原始 Veo 视频底部含 Bepro 动作标签，会向模型泄漏答案。推理输入必须使用无叠加原片，或在重采样前用不透明遮罩完整覆盖事件/球员标签区；masked 结果必须明确标记其视野损失，不得与 clean-video 基准混称。
 

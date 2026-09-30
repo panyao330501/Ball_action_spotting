@@ -113,3 +113,11 @@
 - 决策：U18 Slurm 入口使用 `/work7/y_pan/anaconda3/envs/ballspot-infer/bin/python`，不经 `/work7/y_pan/anaconda3/bin/conda run` 包装。
 - 理由：登录节点上的 `conda` 脚本 shebang 固定为 `/home/y_pan/workspace7/anaconda3/bin/python`；作业 6857087 所在计算节点没有该路径，模型启动前即以 127 失败。`/work7` 下环境 Python 是同一 Conda 环境的计算节点可见规范路径。
 - 影响：环境内容和依赖不变，只修正计算节点启动路径；后续必须通过 Slurm 冒烟确认 CUDA、模型和视频实际可读。
+
+## D-015——U18 远侧评估使用 Bepro Y 的 GT 分带 Recall
+
+- 日期：2026-09-30
+- 状态：已接受
+- 决策：四个半场各检查一组 `Y≈0` 与 `Y≈1` 的代表性原视频帧，确认 Y 从摄像机近侧指向远侧；按三等分写入 `near/mid/far`。空间分层只报告 GT-stratified Recall。
+- 理由：该验证直接服务于“画面奥侧”性能问题；但当前 BAS 只输出时间和类别，没有空间位置，误检不能可靠分配到某个距离带。
+- 影响：可比较 Pass/Drive 在远侧 GT 上的检出率；不得报告分带 Precision/AP，除非未来预测或 tracking 提供可靠的空间坐标。

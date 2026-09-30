@@ -140,6 +140,37 @@ def percentile(values: list[float], quantile: float) -> float | None:
     return ordered[lower] * (1 - weight) + ordered[upper] * weight
 
 
+def recall_by_gt_distance_band(
+    gt_events: list[dict[str, Any]],
+    predictions: list[dict[str, Any]],
+    tolerance: float,
+    threshold: float,
+) -> dict[str, dict[str, dict[str, float | int]]]:
+    result: dict[str, dict[str, dict[str, float | int]]] = {}
+    for label in LABELS:
+        operating = [
+            event
+            for event in predictions
+            if event["label"] == label and event["confidence"] >= threshold
+        ]
+        _, matches = ranked_matches(gt_events, operating, label, tolerance)
+        matched_ids = {match["event_id"] for match in matches if match is not None}
+        result[label] = {}
+        for band in ("near", "mid", "far"):
+            band_gt = [
+                event
+                for event in gt_events
+                if event["label"] == label and event.get("distance_band") == band
+            ]
+            true_positive = sum(event["event_id"] in matched_ids for event in band_gt)
+            result[label][band] = {
+                "gt": len(band_gt),
+                "tp": true_positive,
+                "recall": true_positive / len(band_gt) if band_gt else 0.0,
+            }
+    return result
+
+
 def evaluate_group(
     gt_events: list[dict[str, Any]],
     predictions: list[dict[str, Any]],
@@ -188,6 +219,9 @@ def evaluate_group(
             if not math.isnan(ap):
                 aps.append(ap)
         tolerance_result["map"] = sum(aps) / len(aps) if aps else None
+        tolerance_result["recall_by_gt_distance_band"] = recall_by_gt_distance_band(
+            gt_events, predictions, tolerance, threshold
+        )
         result["tolerances"][f"{tolerance:g}"] = tolerance_result
     return result
 

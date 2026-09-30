@@ -300,7 +300,7 @@ ssh chiron "cd /work7/y_pan/Code_repo/Ball_action_spotting && conda run -n balls
 & 'C:\Users\logan\.conda\envs\ballspot-viz\python.exe' scripts/prepare_u18_ground_truth.py `
   --config configs/u18_gt.yaml `
   --source-root U18 `
-  --output-dir artifacts/u18_ground_truth/20260930_u18_bepro_gt_v1
+  --output-dir artifacts/u18_ground_truth/20260930_u18_bepro_gt_spatial_v2
 ```
 
 该命令验证四段视频 SHA-256，只读取 8 份 `*_イベント.xml`，并拒绝覆盖已有输出目录。
@@ -342,7 +342,7 @@ ssh chiron 'cd /work7/y_pan/Code_repo/Ball_action_spotting && sbatch scripts/slu
 
 ```powershell
 & 'C:\Users\logan\.conda\envs\ballspot-viz\python.exe' scripts/evaluate_u18_predictions.py `
-  --ground-truth artifacts/u18_ground_truth/20260930_u18_bepro_gt_v1/gt_events_evaluable.json `
+  --ground-truth artifacts/u18_ground_truth/20260930_u18_bepro_gt_spatial_v2/gt_events_evaluable.json `
   --predictions-root artifacts/u18_predictions/<RUN_ID> `
   --output-dir artifacts/u18_evaluation/<RUN_ID> `
   --tolerances 0.5,1.0,2.0 `

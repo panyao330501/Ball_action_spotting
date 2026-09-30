@@ -4,6 +4,13 @@ dataset_id: "u18_bepro_20250405"
 source_root: "U18"
 model_context_guard_sec: 1.32
 
+spatial_bands:
+  coordinate: "Bepro Y"
+  camera_near_touchline_y: 0.0
+  near_max_exclusive: 0.3333333333
+  far_min_inclusive: 0.6666666667
+  verification: "2026-09-30 manual check of Y≈0/Y≈1 events in all four halves"
+
 event_mapping:
   "パス":
     label: "Pass"

@@ -29,6 +29,7 @@ def test_second_half_match_time_is_converted_to_video_time(tmp_path: Path) -> No
         tmp_path,
         video,
         {"パス": {"label": "Pass", "status": "direct"}},
+        {"near_max_exclusive": 1 / 3, "far_min_inclusive": 2 / 3},
         1.32,
     )
     assert len(events) == 1
@@ -63,3 +64,11 @@ def test_drive_audit_sample_is_balanced_by_video() -> None:
     counts = {video_id: sum(row["video_id"] == video_id for row in sample) for video_id in "abcd"}
     assert counts == {"a": 13, "b": 13, "c": 12, "d": 12}
     assert all(row["review_mapping"] == "unreviewed" for row in sample)
+
+
+def test_distance_band_uses_camera_side_verified_bepro_y() -> None:
+    spatial = {"near_max_exclusive": 1 / 3, "far_min_inclusive": 2 / 3}
+    assert converter.distance_band(0.0, spatial) == "near"
+    assert converter.distance_band(0.5, spatial) == "mid"
+    assert converter.distance_band(1.0, spatial) == "far"
+    assert converter.distance_band(None, spatial) == "unknown"

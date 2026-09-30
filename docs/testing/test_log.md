@@ -464,3 +464,26 @@ Git 提交：
 - 结果：作业 1 秒内 `FAILED`，`ExitCode=127:0`；stderr 为 `/work7/y_pan/anaconda3/bin/conda: cannot execute: required file not found`。模型、视频和 CUDA 尚未启动。
 - 原因：该 `conda` 包装器 shebang 指向计算节点不可见的 `/home/y_pan/workspace7/anaconda3/bin/python`。
 - 修复：U18 Slurm 入口改为直接调用同一环境的 `/work7/y_pan/anaconda3/envs/ballspot-infer/bin/python`；失败日志保留，不删除原作业记录。
+
+## 2026-09-30——T-U18-008 Bepro Y 与摄像机距离方向检查
+
+- 状态：通过
+- 方法：从四个半场分别选取一条 `Y≈0` 和一条 `Y≈1` 的 Pass，共人工查看 8 个原视频动作时刻，并结合球/执行者所在触线侧判断。
+- 结果：四段视频均一致显示 `Y≈0` 位于摄像机近侧、`Y≈1` 位于画面远侧；前后半场方向不翻转。
+- 实现：GT 新增 `distance_band`，按 Y 三等分为 near/mid/far；评估器新增按类别和 GT band 的 Recall。预测没有空间坐标，因此不计算分带 Precision/AP。
+
+## 2026-09-30——T-U18-009 空间版正式 GT 转换
+
+- 状态：通过
+- 输出：`artifacts/u18_ground_truth/20260930_u18_bepro_gt_spatial_v2/`。
+- 结果：总量和排除项与 v1 完全一致；可评估 Pass 1651、Drive proxy 1191。分带为 Pass near/mid/far=`513/504/634`，Drive proxy near/mid/far=`358/342/491`，合计分别回到 1651/1191。
+- 自动化回归：新增距离方向和 far Recall 断言后，完整 pytest 为 29 项全部通过。
+
+## 2026-09-30——T-U18-010 修复后的远端 90 秒 7-fold 冒烟
+
+- 状态：通过；替代失败作业 `6857087`
+- Git 提交：`e857287cb4649db2006789e3737320474ccbda05`
+- 作业：`6857091`，节点 `nevera`，RTX A6000，运行 5 分 47 秒，`COMPLETED`、`ExitCode=0:0`。
+- 输入：`fc_tokyo_aomori_h1_25fps_masked.mp4`，SHA-256 `4ac0f31b783d05194c8a57bfdc07172e8332f83c66bd5f75c0334fc3bc303c22`，请求 0～90 秒。
+- 输出：`scores.npz` 为 137,803 字节、SHA-256 `2fa9c3323a86b5af0680294773ac012741f209229683422b82ce4dcf4e67b14e`；shape 为 `[2217,7,2]`，集成 shape `[2217,2]`，预测覆盖 1.32～89.96 秒，7 folds 与 horizontal flip TTA 均启用。
+- 后续动作：已提交同一代理的完整半场作业 `6857094`；完成后将前 90 秒原始分数与本冒烟逐值比较，作为确定性和区间一致性检查。
