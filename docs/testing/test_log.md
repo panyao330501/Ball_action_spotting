@@ -487,3 +487,38 @@ Git 提交：
 - 输入：`fc_tokyo_aomori_h1_25fps_masked.mp4`，SHA-256 `4ac0f31b783d05194c8a57bfdc07172e8332f83c66bd5f75c0334fc3bc303c22`，请求 0～90 秒。
 - 输出：`scores.npz` 为 137,803 字节、SHA-256 `2fa9c3323a86b5af0680294773ac012741f209229683422b82ce4dcf4e67b14e`；shape 为 `[2217,7,2]`，集成 shape `[2217,2]`，预测覆盖 1.32～89.96 秒，7 folds 与 horizontal flip TTA 均启用。
 - 后续动作：已提交同一代理的完整半场作业 `6857094`；完成后将前 90 秒原始分数与本冒烟逐值比较，作为确定性和区间一致性检查。
+
+## 2026-10-01——T-U18-011 四个完整 masked 推理代理
+
+- 状态：通过
+- 端点和环境：本地 `ballspot-viz`；FFmpeg/FFprobe 7.1.1；输出 `data/u18_inference_20260930_masked_v1/`。
+- 结果：四段代理均为 H.264、1280×720、25 FPS CFR、无音频，并逐段完成从首帧到末帧的全片解码，四个 FFmpeg 进程退出码均为 0。
+- FC Tokyo/Aomori H1：69,156 帧、2766.24 秒、1,425,564,262 字节，SHA-256 `4ac0f31b783d05194c8a57bfdc07172e8332f83c66bd5f75c0334fc3bc303c22`。
+- FC Tokyo/Aomori H2：75,946 帧、3037.84 秒、1,467,274,970 字节，SHA-256 `0fc3fcd7b5cf735af02148f0e6e3f0734e8dbc3103e0c5b5ad12cd6673998b73`。
+- Urawa/Ryutsu H1：67,924 帧、2716.96 秒、1,164,835,724 字节，SHA-256 `b3b7b89720024d9fca7a43de92f0c423db2c2ce865e161f59385fb564ed3bee2`。
+- Urawa/Ryutsu H2：77,353 帧、3094.12 秒、1,053,342,825 字节，SHA-256 `ce431fa12ea7fbd91f410c44884542fb151899056963241326b9dfa6e02030cf`。
+- 远端传输：四段视频及逐视频 YAML 已传到 `chiron`，远端 `sha256sum` 与上述本地 manifest 全部一致。
+
+## 2026-10-01——T-U18-012 首个完整半场远端推理
+
+- 状态：通过
+- Git 提交：`e857287cb4649db2006789e3737320474ccbda05`
+- 作业：`6857094`，节点 `nevera`，RTX A6000，manifest 状态 `completed`，模型计时 8529.67 秒。
+- 输入：FC Tokyo/Aomori H1 完整 masked 代理，SHA-256 `4ac0f31b783d05194c8a57bfdc07172e8332f83c66bd5f75c0334fc3bc303c22`，请求 0～2766.233333 秒。
+- 输出：`scores.npz` 为 69,090×7×2 fold 分数和 69,090×2 集成分数，预测覆盖 1.32～2764.88 秒；7 folds、水平翻转 TTA 和模型权重哈希均写入 manifest。
+- 待补检查：全部推理结束并取回分数后，将本完整运行前 90 秒与作业 `6857091` 逐值比较。
+
+## 2026-10-01——T-U18-013 其余完整半场 Slurm 提交
+
+- 状态：一次失败后已纠正；替代任务运行中
+- 失败作业：`6857205`。Windows PowerShell 在发送 SSH 命令前把双引号中的 `$PWD` 展开为本地 `C:\Code\Ball_action_spotting`，远端收到无效路径后以 `ExitCode=2:0`、0 秒失败；模型和视频未启动，也未生成正式输出。
+- 修复：改用显式 `/work7/y_pan/Code_repo/Ball_action_spotting/...` 绝对路径；runbook 已增加 PowerShell 防误用说明。
+- 替代作业：FC Tokyo/Aomori H2=`6857206`、Urawa/Ryutsu H1=`6857207`、Urawa/Ryutsu H2=`6857208`；提交后均进入 `RUNNING`，分别使用已核验哈希的完整代理。
+
+## 2026-10-01——T-U18-014 完整推理前 90 秒确定性对比与首场后处理
+
+- 状态：通过（记录一次检查命令键名错误）
+- 首次检查失败：比较脚本误用不存在的 NPZ 键 `times_sec`；实际键为 `time_sec`。该错误只中止只读比较，未修改分数或产物。
+- 确定性结果：作业 `6857091` 的 2,217 个冒烟时间点与完整作业 `6857094` 的前 2,217 个时间点，在 `frame_indexes`、`time_sec`、`fold_ids`、全部 `fold_scores` 和 `ensemble_scores` 上逐值完全一致；分数最大绝对差为 0，最后时间均为 89.96 秒。
+- 后处理：以 `gauss_sigma=3`、`min_height=0`、`min_distance_frames=15` 处理 FC Tokyo/Aomori H1 完整分数，输出 `artifacts/u18_predictions/20261001_u18_zero_shot_masked_v1/fc_tokyo_aomori_h1/`。
+- 结果：保留 2,910 个局部峰供 AP 排序，其中 Pass 1,479、Drive 1,431；输入原始分数 SHA-256 为 `e08b899c4cdf1a119610c47cd72aea9a94d8afeaadfd2d5d0f1de01e5cac9bf7`。

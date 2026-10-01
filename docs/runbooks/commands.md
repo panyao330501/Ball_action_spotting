@@ -317,7 +317,7 @@ ssh chiron "cd /work7/y_pan/Code_repo/Ball_action_spotting && conda run -n balls
   --end-sec 12
 ```
 
-### 生成四个完整 masked 代理——模板（正式运行完成后再改为已验证）
+### 生成四个完整 masked 代理——已验证
 
 ```powershell
 & 'C:\Users\logan\.conda\envs\ballspot-viz\python.exe' scripts/prepare_u18_inference_proxies.py `
@@ -328,13 +328,17 @@ ssh chiron "cd /work7/y_pan/Code_repo/Ball_action_spotting && conda run -n balls
   --ffprobe 'C:\Users\logan\.conda\envs\ballspot-viz\Library\bin\ffprobe.exe'
 ```
 
+正式运行 `data/u18_inference_20260930_masked_v1/` 生成四段 1280×720、25 FPS、无音频代理；四段均通过 FFprobe、帧数清单和完整解码检查。传输到 `chiron` 后须以 `sha256sum` 对照本地 manifest，不能仅以文件大小判断传输完成。
+
 ### 提交单个 U18 半场推理——模板
 
 以下四个参数依次为远端代理、远端逐视频配置、结束秒和新输出目录。GPU 推理只能通过 Slurm 提交。
 
 ```powershell
-ssh chiron 'cd /work7/y_pan/Code_repo/Ball_action_spotting && sbatch scripts/slurm/u18_inference.sh <VIDEO> <CONFIG> <END_SEC> <OUTPUT_DIR>'
+ssh chiron 'cd /work7/y_pan/Code_repo/Ball_action_spotting && sbatch scripts/slurm/u18_inference.sh <REMOTE_ABSOLUTE_VIDEO> <REMOTE_ABSOLUTE_CONFIG> <END_SEC> <REMOTE_ABSOLUTE_OUTPUT_DIR>'
 ```
+
+在 Windows PowerShell 中不要把远端路径写成双引号字符串里的 `$PWD/...`；PowerShell 会先把 `$PWD` 展开成本地 Windows 路径。应直接填写 `/work7/y_pan/Code_repo/Ball_action_spotting/...` 绝对路径。
 
 ### U18 正式评估——模板
 
