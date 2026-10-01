@@ -514,6 +514,7 @@ Git 提交：
 - 失败作业：`6857205`。Windows PowerShell 在发送 SSH 命令前把双引号中的 `$PWD` 展开为本地 `C:\Code\Ball_action_spotting`，远端收到无效路径后以 `ExitCode=2:0`、0 秒失败；模型和视频未启动，也未生成正式输出。
 - 修复：改用显式 `/work7/y_pan/Code_repo/Ball_action_spotting/...` 绝对路径；runbook 已增加 PowerShell 防误用说明。
 - 替代作业：FC Tokyo/Aomori H2=`6857206`、Urawa/Ryutsu H1=`6857207`、Urawa/Ryutsu H2=`6857208`；提交后均进入 `RUNNING`，分别使用已核验哈希的完整代理。
+- 只读日志聚合命令也曾因双引号中的远端循环变量 `$j` 被 PowerShell 预展开为空而未找到日志；随后改用三个明确日志路径检查，均已完成模型加载且没有 stderr 错误。
 
 ## 2026-10-01——T-U18-014 完整推理前 90 秒确定性对比与首场后处理
 
@@ -522,3 +523,12 @@ Git 提交：
 - 确定性结果：作业 `6857091` 的 2,217 个冒烟时间点与完整作业 `6857094` 的前 2,217 个时间点，在 `frame_indexes`、`time_sec`、`fold_ids`、全部 `fold_scores` 和 `ensemble_scores` 上逐值完全一致；分数最大绝对差为 0，最后时间均为 89.96 秒。
 - 后处理：以 `gauss_sigma=3`、`min_height=0`、`min_distance_frames=15` 处理 FC Tokyo/Aomori H1 完整分数，输出 `artifacts/u18_predictions/20261001_u18_zero_shot_masked_v1/fc_tokyo_aomori_h1/`。
 - 结果：保留 2,910 个局部峰供 AP 排序，其中 Pass 1,479、Drive 1,431；输入原始分数 SHA-256 为 `e08b899c4cdf1a119610c47cd72aea9a94d8afeaadfd2d5d0f1de01e5cac9bf7`。
+
+## 2026-10-01——T-U18-015 首个半场评估管线诊断
+
+- 状态：通过；仅为单半场临时诊断，不作为四半场正式结论
+- 输入：FC Tokyo/Aomori H1 的 GT 907 条（Pass 498、Drive proxy 409）及 `min_height=0` 的 2,910 个候选；固定操作阈值 0.2。
+- mAP：`±0.5s=0.1922`、`±1s=0.4321`、`±2s=0.6768`。
+- `±1s`：Pass Precision/Recall/F1=`0.5387/0.3635/0.4341`；Drive proxy=`0.4831/0.3496/0.4057`。
+- `±1s` 距离分带 Recall：Pass near/mid/far=`0.4706/0.3825/0.2626`；Drive proxy=`0.4196/0.4067/0.2381`。
+- 观察：单半场中两类的 far Recall 均明显低于 near/mid，符合本步骤要验证的远侧失败假设；仍需四半场汇总及 Drive proxy 人工语义审查后才能形成正式结论。
