@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 from pathlib import Path
 
-from evaluate_u18_predictions import evaluate_group, load_predictions
+from evaluate_u18_predictions import evaluate_group, load_predictions, operating_matches_rows
 
 
 def read(path: Path):
@@ -30,6 +31,7 @@ def main() -> None:
     parser.add_argument("--model-manifests-root", required=True, type=Path)
     parser.add_argument("--proxy-manifest", required=True, type=Path)
     parser.add_argument("--output-dir", required=True, type=Path)
+    parser.add_argument("--experiment-suffix", default="v2", help="Name suffix of the trained experiment")
     args = parser.parse_args()
     if args.output_dir.exists():
         raise FileExistsError(f"拒绝覆盖比较结果：{args.output_dir}")
@@ -71,7 +73,7 @@ def main() -> None:
                 raise ValueError(f"改进模型输入视频不一致：{video_id}")
             if new_post["scores_sha256"] != sha256(improved_dir / "inference" / "scores.npz"):
                 raise ValueError(f"改进模型原始分数哈希不符：{video_id}")
-            if infer["model"]["experiment"] != f"u18_pass_head_{fold_id}_v1":
+            if infer["model"]["experiment"] != f"u18_pass_head_{fold_id}_{args.experiment_suffix}":
                 raise ValueError(f"改进模型实验名不符：{video_id}")
             if infer["model"]["fold_ids"] != [0] or infer["model"]["checkpoint_sha256"] != [model["output_checkpoint_sha256"]]:
                 raise ValueError(f"改进权重与训练清单不一致：{video_id}")
@@ -94,8 +96,19 @@ def main() -> None:
             "improved": evaluate_group(gt, improved, [0.5, 1.0, 2.0], 0.2),
             "input_sha256": hashes,
         }
+        fold_output = args.output_dir / fold_id
+        fold_output.mkdir(parents=True)
+        for name, predictions in (("baseline", baselines), ("improved", improved)):
+            rows = operating_matches_rows(gt, predictions, 1.0, 0.2)
+            with (fold_output / f"{name}_matches_at_1s.csv").open(
+                "w", newline="", encoding="utf-8-sig"
+            ) as stream:
+                writer = csv.DictWriter(stream, fieldnames=list(rows[0]) if rows else [])
+                if rows:
+                    writer.writeheader()
+                    writer.writerows(rows)
+            hashes[f"{name}_matches_at_1s"] = sha256(fold_output / f"{name}_matches_at_1s.csv")
         results.append(result)
-    args.output_dir.mkdir(parents=True)
     output = {
         "schema_version": 1,
         "interpretation": "Exploratory match-held-out comparison on two previously inspected U18 matches",
