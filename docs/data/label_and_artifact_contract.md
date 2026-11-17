@@ -195,7 +195,7 @@ U18 正式评估只读取每支球队、每个半场的一份 `*_イベント.xm
 标签映射：
 
 - Bepro `パス` 映射为 `Pass`，成功与失败均计入。
-- Bepro `パス(受け手)` 暂映射为 `Drive`，`mapping_status=provisional_receiver_proxy`；完成人工语义审查前，不得省略 proxy/provisional 限定。
+- Bepro `パス(受け手)` 在 2026-09-30 原版 GT 中暂映射为 `Drive`，`mapping_status=provisional_receiver_proxy`。2026-11-12 的 50 条人工审查（23 accept、20 reject、7 unclear）未支持全量映射；历史字段和指标只用于接球代理诊断，不得称为已验证的 `Drive` GT 或正式 Drive 性能。未来正式 Drive GT 应另建版本，不覆盖原始转换。
 - `ドリブル突破`、`スペースへのドリブル` 不直接映射为本模型的 `Drive`。
 
 每条 U18 GT 至少保留：`event_id`、`video_id`、`match_id`、`half`、`source_time_sec`、`match_time_sec`、`label`、`mapping_status`、原始 Bepro code、team/player、`x/y/to_x/to_y`、`distance_band`、pass result、`evaluation_status`、排除原因及源 XML/事件 ID。
@@ -218,4 +218,73 @@ artifacts/u18_ground_truth/<run_id>/
 artifacts/u18_evaluation/<run_id>/
   metrics.json
   matches_at_1s.csv
+  pass_review_cases.csv
+  review_site/
+    index.html
+    app.js
+    style.css
+    manifest.json
+    clips/<review_id>.mp4
+  drive_review_site/
+    index.html
+    app.js
+    style.css
+    manifest.json
+    clips/<event_id>.mp4
+  review_exports/
+    pass_review_<utc_timestamp>_<id>.csv
+    drive_review_<utc_timestamp>_<id>.csv
 ```
+
+`pass_review_cases.csv` 是按 `matches_at_1s.csv` 选出的人工复核入口：每半场 3 条高置信度 Pass FP、3 条分散时间的 far Pass FN 和 1 条 TP 参照。`algorithmic_status` 只表示固定 ±1 秒、阈值 0.2 的时间匹配结果，不是已确认的视觉真假；人工可见性、判定和备注列必须保持空白直至审查。
+
+新增的 `artifacts/u18_pass_cv/<run_id>/training_review.csv` 只用于训练标签核对，不能作为新的 GT 或模型性能统计。它沿用 Pass 审查页的必要字段，并增加 `review_reason`、`nearest_gt_gap_sec`、`nearby_peak_confidence`；后两者只是候选选择依据，不是人工判断。`selection_manifest.json` 固定匹配表、GT、旧人工审查、代理清单及原始预测的 SHA-256。`review_site/` 保留与既有审查页相同的遮挡片段及哈希契约，独立 `review_exports/` 保存人工版本。每轮训练只能读取该轮训练比赛的人工修订，另一比赛的测试 GT、预测与原基线不得改写；人工未确认的候选不自动进入训练。
+
+`artifacts/u18_pass_cv/20261117_training_labels_v1/` 是独立训练产物，顶层 `manifest.json` 固定输入文件、冻结分组和各输出 SHA-256。每个 `<fold_id>/` 包含 `train_pass_events.json`（`event_id`、`video_id`、`bepro_time_sec`、`training_time_sec`、`training_frame_index_25fps`、人工来源）、`excluded_bepro_pass.json`（排除原因及审查 ID）、`time_corrections.json`（带符号秒数与原备注）、`pending_pass_additions.json`（视觉 Pass 但事件身份及精确时刻未核）和 `ignore_intervals.json`（负例采样避让区间）。`training_frame_index_25fps` 为四舍五入后的零起始索引。各轮文件只含其训练比赛；排除及校正不改写 `test_gt_pass.json`。待核补标不可当作已确认 GT，也不可作为训练负例。
+
+`20261117_training_labels_v2/` 保留上述 Pass 标签、排除与修订，另从已哈希冻结的全量可评估 GT 中按训练比赛筛选 `パス(受け手)`，写入各轮 `drive_proxy_events.json`（原事件 ID、视频、半场时间与 `mapping_status=provisional_receiver_proxy`）。该文件只用于随机负例时间避让，**不**赋予接球事件可信 Drive GT 身份。模型训练生成 `training_examples.json` 保存逐条正负例视频、25 FPS 零起始帧、Pass 目标和正例事件 ID，以核查避让规则；模型清单含其 SHA-256。
+
+`artifacts/u18_pass_cv/20261117_pending_pass_identity_v2/` 是后续人工身份核对入口，不是训练标签：`identity_review.csv`、`review_data.json`、`index.html`、`manifest.json`。每行保留旧审查 `review_id`、预测半场时间和用户已确认视觉 Pass 的来源，列最近同视频可评估 Bepro Pass 的 ID、时间和差值、原遮挡片段相对路径与起始秒数。`nearest_bepro_event_id` 只是时间最近邻，**不**证明同一动作。人工另填 `identity_decision`（`same_nearest_gt`、`separate_pass`、`unclear`）、`confirmed_pass_time_sec`、`confirmed_frame_index_25fps` 和 `new_comment`；确认帧号为 25 FPS 零起始源视频帧。页面浏览器存储是草稿，正式结果须导出新的 CSV。清单初始 17 行全部空白，5 行 `P1_check_missing_event` 仅为超过 3 秒的先看提示；无人工确认前不得把它们自动加入训练或改写测试 GT。
+
+`review_site/` 是本地浏览器审查产物。片段从已遮挡 Bepro 动作文字的 25 FPS 推理代理截取，以 `source_time_sec` 为中心，前后各约 5 秒；页面显示的毫秒时间码由该数值重新计算，不依赖表格软件可能改写的 `source_timecode` 字符串。`manifest.json` 记录输入 CSV/代理哈希、源帧区间和片段哈希。页面的浏览器存储只是草稿；最终人工结果应导出为新的 `pass_review_cases_reviewed.csv`，保留原字段与 `algorithmic_status`，仅填写 `human_visibility`、`human_judgment`、`human_comment`。导出的结果不得反写原始 GT、模型预测或指标。
+
+`drive_review_site/` 使用同样的遮挡片段与页面交互，但输入为原始 50 行 `drive_mapping_audit.csv`，不改变 `event_id`、Bepro 代码或 GT 字段。页面的 `review_observation` 记录接球后画面动作类别，`review_mapping` 取 `accept`、`reject`、`unclear` 或尚未审查的 `unreviewed`，`review_comment` 可补充时间/遮挡原因；导出为独立的 `drive_mapping_audit_reviewed.csv`。这些是人工语义判断，不自动重算已报告的 provisional Drive 指标。
+
+本地服务仅监听 `127.0.0.1`，网页的「保存到项目」将当前完整 CSV 写入 `review_exports/` 的全新时间戳文件；服务验证来源哈希、样本 ID 集合、行数和人工选项后才保存。浏览器下载 CSV 是备用出口。浏览器本地存储只是草稿，正式人工结果以 `review_exports/` 中用户确认的文件或手工下载的 CSV 为准；自动保存和页面测试不得冒充人工审查已完成。
+
+## 10. U18 Pass / reception 人工选帧候选
+
+`パス` 对应 `Pass`；`パス(受け手)` 在本选帧任务中写为 `Reception candidate`。这只是人工查看首次触球的提示，不使用评估器中暂定的 `Drive` 名称，也不自动确认 trap 是否可见。
+
+候选采用原始 Veo 半场视频的 30 FPS，而不是 25 FPS 推理代理。`frame_index` 从 0 开始，`frame_number = frame_index + 1`，`frame_time_sec = frame_index / source_fps`。事件 `source_time_sec` 使用半场视频零点；`match_time_sec` 为完整比赛时间，后半场比前者多 2700 秒。两种时间与帧时间都保留，不得混为同一值。
+
+```text
+artifacts/u18_frame_candidates/<run_id>/
+  manifest.json
+  review.csv
+  index.html
+  index_small_v1.html
+  clip_manifest.json
+  frames/<event_id>.jpg
+  previews/<event_id>.jpg
+  clips/<event_id>.mp4
+```
+
+`review.csv` 保留原 GT `event_id`、`video_id`、`match_id`、`half`、`bepro_code`、动作类别、两种时间及时间码、原视频帧号、空间坐标、球场区域、源媒体路径、图片路径和空白人工审查字段。输出图片在生成前遮挡原视频左下方 Bepro 动作文字；预览展示事件前 0.3 秒、事件帧及事件后 0.3 秒。自动结果的 `review_status` 一律为 `unreviewed`，人工导出的选中清单是单独产物，不得反写原始 GT 或当成已确认的首次触球标签。运行清单记录源视频和输入 GT 的哈希、时间间隔及排重设置。
+
+大画面审查版本保留首版图片并为每条候选生成原视频时间轴前后各约 5 秒的 30 FPS、1600×900、无音轨 MP4。编码前遮挡 Bepro 动作文字。`clip_manifest.json` 声明每段 `source_start_frame`、`source_end_frame`、`frame_count`、`center_relative_frame` 和片段哈希；源视频哈希仍在原 `manifest.json`。片段相对帧 `j` 映射到原视频零起始帧 `source_start_frame + j`。页面显示源帧号、半场时间和比赛时间，人工确认帧可不同于 Bepro GT 时间对应帧。导出的 `chosen_frame_index` 与所算两种确认时间是人工选择，须与原始 `frame_index` 和 GT 时间分开保存。导出字段 `suggested_frame_image` 仅指 GT 建议帧；确认帧须根据 `source_video` 与 `chosen_frame_index` 提取，不得将建议帧图片冒充确认帧。
+
+人工选定帧的共享包使用独立目录，不回写候选 `review.csv`：
+
+```text
+artifacts/u18_selected_frames/<run_id>/
+  selected_frames.csv
+  manifest.json
+  README.md
+  frames/<candidate_id>_<video_id>_f<chosen_frame_index>.jpg
+  u18_selected_frames_100.zip
+```
+
+`selected_frames.csv` 中 `source_time_sec`、`match_time_sec` 和 `frame_index` 仍是 Bepro 建议事件信息；`chosen_*` 是人工确认的帧号与时间，`selected_frame_image` 指向对应的实际提取图片。共享 CSV 只保留原视频文件名，不依赖本机绝对路径。图片在原始 30 FPS、1920×1080 视频中按零起始帧号提取，左下方 Bepro 文字区域已遮挡。`field_zone`、`x/y` 是原 Bepro 事件坐标，并非对人工选定图片重新定位；`Reception candidate` 也不自动升级为已独立验证的 trap 标签。ZIP 包含 CSV、manifest、README 与全部图片，不包含原始视频或审查片段。
+
+供教授共享的 ZIP 内 `README.md` 使用英语；CSV 字段名和说明性类别使用英语，原始日文视频文件名及 Bepro 代码作为数据标识保留。

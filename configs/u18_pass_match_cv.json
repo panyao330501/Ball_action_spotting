@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "purpose": "Pass-only match-held-out exploratory comparison on the two available U18 matches",
+  "ground_truth_path": "artifacts/u18_ground_truth/20260930_u18_bepro_gt_spatial_v2/gt_events_evaluable.json",
+  "ground_truth_sha256": "5e2b79a6cd737605b51268463ee112c867b1a14216e56beb5e9ff85775a639d2",
+  "proxy_manifest_path": "data/u18_inference_20260930_masked_v1/proxy_manifest.json",
+  "proxy_manifest_sha256": "e78853cf46c3e7455bc402f674206a991adf2e7ea4423df0c3b07e1aec1962b3",
+  "baseline_metrics_path": "artifacts/u18_evaluation/20261109_u18_zero_shot_masked_v1/metrics.json",
+  "baseline_metrics_sha256": "65923549b4b9079614df33d801202e289a28c72891472d06d1b3fe4e4e3b4a30",
+  "baseline_predictions_root": "artifacts/u18_predictions/20261001_u18_zero_shot_masked_v1",
+  "label": "Pass",
+  "tolerances_sec": [0.5, 1.0, 2.0],
+  "baseline_operating_threshold": 0.2,
+  "matches": {
+    "A": {
+      "name": "FC Tokyo U18 vs Aomori Yamada",
+      "video_ids": ["fc_tokyo_aomori_h1", "fc_tokyo_aomori_h2"],
+      "evaluable_pass_gt": 874
+    },
+    "B": {
+      "name": "Urawa Red Diamonds U18 vs Ryutsu Kashiwa",
+      "video_ids": ["urawa_ryutsu_h1", "urawa_ryutsu_h2"],
+      "evaluable_pass_gt": 777
+    }
+  },
+  "folds": [
+    {"fold_id": "A_train_B_test", "train_match": "A", "test_match": "B"},
+    {"fold_id": "B_train_A_test", "train_match": "B", "test_match": "A"}
+  ],
+  "interpretation": "Both matches were previously inspected during zero-shot diagnosis; this is a match-held-out exploratory comparison, not a fresh blind test."
+}

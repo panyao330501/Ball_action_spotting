@@ -532,3 +532,189 @@ Git 提交：
 - `±1s`：Pass Precision/Recall/F1=`0.5387/0.3635/0.4341`；Drive proxy=`0.4831/0.3496/0.4057`。
 - `±1s` 距离分带 Recall：Pass near/mid/far=`0.4706/0.3825/0.2626`；Drive proxy=`0.4196/0.4067/0.2381`。
 - 观察：单半场中两类的 far Recall 均明显低于 near/mid，符合本步骤要验证的远侧失败假设；仍需四半场汇总及 Drive proxy 人工语义审查后才能形成正式结论。
+
+## 2026-10-02——T-U18-016 Pass / reception 候选选帧与产物核验
+
+- 状态：通过。
+- 端点和环境：本地 Windows `ballspot-viz`；OpenCV 4.12.0；四段原始 30 FPS Veo 视频与 `20260930_u18_bepro_gt_spatial_v2` GT。
+- 单元测试：`conda run -n ballspot-viz python -m pytest -q tests/test_curate_u18_candidate_frames.py`，3 项通过，覆盖两场/类别/后半场配额、原始 Bepro 接球语义、既有审查时刻排除及 30 FPS 帧索引定义。
+- 生成命令：`conda run -n ballspot-viz python scripts/curate_u18_candidate_frames.py --output-dir artifacts/u18_frame_candidates/20261002_u18_frame_candidates_v1`，退出码 0。源视频大小与 SHA-256 均按配置再次校验。产生 120 张原尺寸遮挡帧、120 张三联预览和 120 行 `review.csv`，两场各 60、Pass/Reception 各 60、后半场 96；画面指纹额外跳过 3 个近似场景。
+- 核验命令：`conda run -n ballspot-viz python scripts/verify_u18_candidate_frames.py artifacts/u18_frame_candidates/20261002_u18_frame_candidates_v1`，退出码 0；图片数量/尺寸/解码与遮挡区域、GT 对应关系、既有 50 条审查样本的 5 秒排除窗、帧号与事件时间均通过。最小同视频选中事件间隔 15.072 秒，最大帧时间偏差 0.016333 秒；3×3 球场分区计数为 12～14/区。
+- 人工查看四个代表性三联预览（两场、前后半场），源画面、遮挡和前后顺序正常。球和触球是否清楚尚未逐张人工确认；候选不能直接当最终 100 帧。
+- `node -e` 读取 `index.html` 的 `<script>` 并用 `vm.Script` 做语法解析，退出码 0；此项仅验证脚本语法，未代替浏览器交互检查。
+- 图集随后增加勾选、确认帧号和备注的本地状态保存以及带两种时间码的 CSV 导出；从不变的 120 行 `review.csv` 重新生成 `index.html`。更新后再次运行完整 pytest：32 项通过；Node 脚本解析仍以退出码 0 通过。
+- 尝试在 Codex 内置浏览器打开本地 `file://` 图集时，被 Browser Use URL 安全策略拒绝（只允许 `http:`/`https:`），未执行点击/导出交互。没有绕过限制；交互效果目前只经源码和语法检查，需用户在本机浏览器打开 HTML 后确认。
+
+## 2026-10-02——T-U18-017 全量回归与并行 Conda 运行冲突
+
+- 初次状态：运行环境失败。并行启动产物核验与 `conda run -n ballspot-viz python -m pytest -q` 时，后者报 Temp 下 `__conda_tmp_5152.txt` 被占用或未找到，未执行测试；前者独立以退出码 0 完成。
+- 串行重试：再次单独运行 `conda run -n ballspot-viz python -m pytest -q`，退出码 0，32 项全部通过，耗时 5.38 秒。
+- 结论：此环境下后续 `conda run` 串行执行；初次失败保留在测试记录中，不视为代码回归失败。
+
+## 2026-10-02——T-U18-018 加长 U18 选帧片段和大画面图集
+
+- 状态：媒体与静态页面检查通过；浏览器内播放/点击交互尚未由自动化执行。
+- 烟雾命令：`conda run -n ballspot-viz python scripts/render_u18_frame_review.py --candidate-dir artifacts/u18_frame_candidates/20261002_u18_frame_candidates_v1 --limit 1`，退出码 0，首片段为 301 帧、30 FPS；片段中间帧与原候选帧缩放后的平均绝对像素差 1.805。
+- 正式命令：同上但不传 `--limit`，退出码 0，120 个片段逐一通过 FFprobe 帧数、帧率、尺寸和时长检查。随后用修订后的页面代码复跑同命令，跳过并核验既有片段，更新 `clip_manifest.json` 和 `index.html`，原小图页面保存为 `index_small_v1.html`。片段总字节数 453,956,553，尺寸 1600×900，30 FPS，前后各 5 秒。
+- 产物核验：`conda run -n ballspot-viz python scripts/verify_u18_frame_review.py artifacts/u18_frame_candidates/20261002_u18_frame_candidates_v1`，退出码 0；120 个片段和 SHA-256 对齐，跨四半场抽样 8 段的首/中/末共 24 帧与原视频对应帧比较，最大平均绝对像素差 2.351。
+- 回归：`conda run -n ballspot-viz python -m pytest -q`，34 项通过。
+- 首次 Node 页面检查命令中的正则表达式被 PowerShell 引号截断，`node -e` 在执行页面脚本解析前报 `Unterminated regexp literal`；改为独立的 `vm.Script` 解析和 PowerShell `Select-String` 卡片计数，均退出码 0，页面脚本语法通过且有 120 个片段按钮。此项不等同于浏览器内视频操作检查。
+- 页面后来明确区分 GT 建议帧图片与人工确认帧号，增加确认帧范围验证和 `--gallery-only` 无媒体重编刷新；该命令退出码 0。刷新后的页面脚本再次通过 Node 解析，仍有 120 个片段按钮；完整 pytest 再跑为 34 项通过。
+
+## 2026-10-06——T-U18-019 人工确认帧共享包
+
+- 输入检查：最新人工导出 100 行，旧导出 23 行；100 个候选 ID、100 个“视频＋确认帧号”均唯一，100 个确认帧号非空，原视频路径全部存在。确认帧相对 GT 建议帧最大移动 126 帧（4.2 秒），因此必须重新提取图片。
+- 生成：`conda run -n ballspot-viz python scripts/package_u18_selected_frames.py --selection 'C:\Users\logan\Downloads\u18_selected_frames (1).csv' --candidate-dir artifacts/u18_frame_candidates/20261002_u18_frame_candidates_v1 --output-dir artifacts/u18_selected_frames/20261006_u18_selected_frames_v1`，退出码 0，生成 100 张图片及 CSV/manifest/README/ZIP。
+- 首次逐图核验失败于遮挡区最外边界的 JPEG 振铃：一张图片区域最大像素值 13，但区域均值 0.018、99 百分位 0、内部最大值 0。核验器改为检查遮挡内部后重跑，不改变任何图片。
+- 最终核验：`conda run -n ballspot-viz python scripts/verify_u18_selected_frames.py artifacts/u18_selected_frames/20261006_u18_selected_frames_v1 artifacts/u18_frame_candidates/20261002_u18_frame_candidates_v1`，退出码 0；100 张图片哈希/解码/1920×1080/遮挡均通过，与对应审查片段所选帧的平均像素差均值 2.120、最大 2.614；ZIP 103 个成员 CRC 全部通过，大小 32,429,957 字节，SHA-256 `a2b8f899877b8da4611c5610744903b6e1717206fe8390ddffd68de27696fb70`。
+- 回归：`conda run -n ballspot-viz python -m pytest -q` 退出码 0，34 项全部通过。三个 `conda run` 命令均出现本机 OpenCL `temp.txt` 清理提示，但 Python 主程序和返回码正常。
+- 源视频复核：首次 PowerShell `foreach` 后直接接管道的哈希命令因语法错误退出 1，未执行哈希。改为按 CSV 中四个唯一视频文件名筛选 `U18/` 后运行 `Get-FileHash -Algorithm SHA256`，退出码 0；四段实际 SHA-256 与 `configs/u18_gt.yaml` 及 ZIP manifest 的对应值全部一致。
+
+## 2026-10-06——T-U18-020 英文说明共享包重打包
+
+- 生成脚本 README 模板及产物 `README.md` 改为英语。第一次尝试用 `conda run ... python -c` 执行多行重打包脚本时 Conda 参数包装报错，退出码 1；原 ZIP 未改变，也未产生临时包。改用同一 `ballspot-viz` 环境的 Python 可执行文件，以先写临时 ZIP 再替换正式 ZIP 的方式完成重打包，退出码 0。
+- 检查：ZIP 内 README 与磁盘 README 字节一致，README 全部为 ASCII 英文；ZIP 共 103 个成员，`testzip()` 无 CRC 错误。`scripts/verify_u18_selected_frames.py` 再次退出码 0：100 行/100 张图片的哈希、尺寸、遮挡与审查片段对应关系均通过，最大平均像素差仍为 2.614。
+- 新版 ZIP 大小 32,430,074 字节，SHA-256 为 `473562ced04cd66d5254d9e7607b186fef0caa98c415da82d8b2038fbd3eb387`；`selected_frames.csv` 与 100 张图片内容未改变。原日文视频文件名和 Bepro 代码保留为原始数据标识。
+- 静态检查：`conda run -n ballspot-viz python -m py_compile scripts/package_u18_selected_frames.py` 退出码 0；`git diff --check` 退出码 0，仅提示 Git 将在下次处理时按配置转换行尾。
+
+## 2026-11-09——T-U18-021 远端四半场状态与原始分数回收
+
+- SSH `hostname; whoami; pwd` 退出码 0，身份为 `y_pan@chiron`。`sacct -j 6857094,6857206,6857207,6857208` 退出码 1，服务器返回 `Slurm accounting storage is disabled`；改查 `squeue` 和四份 `manifest.json`，旧作业均不在队列，四份清单均为 `completed` 且各有 `scores.npz`。
+- `scp -r` 从 `/work7/y_pan/Code_repo/Ball_action_spotting/artifacts/inference/` 取回 FC 东京/青森山田 H2、浦和/流经大柏 H1/H2 三个目录，退出码 0；原 H1 保持不变。
+- 远端与本地 SHA-256 逐文件一致。H2 东京：manifest `093a1e38288e0a9cb51b140285cebd76030c77de093a73eb3fdf18b8ba030c29`、scores `49eb65982dbdd256b455325ae69088a7aed6020b4b9cb7333ac72c24ffda0fae`；浦和 H1：`bfd84e55fa791ea7aeb5120b9c4ce13240a7bae16c5cfbb96d838fc5041c56cf`、`f9b787ed029040e187d6ce85103dbd926870a5ad6bff8e3c0cea40c1a963fcb6`；浦和 H2：`7b0517f6006a7198786ba670422fb8ee5c78116c96cead800aaca15571dcb47e`、`fbb41d12c6c58f7ec576e1c71b4cf2dbb936628ca36578e13da43c1ee8f807b7`。
+- 使用本地 `ballspot-viz` Python 核验四份 manifest 的输入哈希/帧数与代理清单一致，`fold_scores` 形状分别为 `[69090,7,2]`、`[75880,7,2]`、`[67858,7,2]`、`[77287,7,2]`；全部分数有限，帧号连续，`time_sec=frame_indexes/25`，集成分数等于 fold 均值，退出码 0。
+
+## 2026-11-09——T-U18-022 四半场后处理与 GT 评估
+
+- 三个新半场依次运行 `conda run -n ballspot-viz python scripts/postprocess_scores.py`，参数 `--gauss-sigma 3 --min-height 0 --min-distance-frames 15`，每次退出码 0；产生 3132、2822、3196 个峰值，加原 H1 的 2910，共 12060。三个新运行的后处理清单均保存 manifest/原始分数 SHA-256。
+- `conda run -n ballspot-viz python scripts/evaluate_u18_predictions.py --ground-truth artifacts/u18_ground_truth/20260930_u18_bepro_gt_spatial_v2/gt_events_evaluable.json --predictions-root artifacts/u18_predictions/20261001_u18_zero_shot_masked_v1 --output-dir artifacts/u18_evaluation/20261109_u18_zero_shot_masked_v1 --tolerances 0.5,1.0,2.0 --operating-threshold 0.2`，退出码 0。GT 2842、全部峰值 12060；Pass ±1s TP/FP/FN=322/375/1329，AP=0.339785；Drive proxy=219/286/972，AP=0.289323。首半场 Pass Recall=0.3635，与 2026-10-01 临时诊断一致。
+- `conda run -n ballspot-viz python -m pytest -q tests/test_evaluate_u18_predictions.py`，3 项通过，退出码 0。上述 `conda run` 仍出现本机 OpenCL `temp.txt` 清理提示，但 Python 任务和退出码正常。
+- 指标文件 SHA-256 `65923549b4b9079614df33d801202e289a28c72891472d06d1b3fe4e4e3b4a30`；完整匹配表 SHA-256 `702e33703f42e5320162becbc8ca49a4340c0de2b1a27d53d35fea9084ca7d02`。
+
+## 2026-11-09——T-U18-023 Pass 代表样本审查表
+
+- `conda run -n ballspot-viz python scripts/curate_u18_eval_review.py` 读取本轮 ±1 秒匹配表、可评估 GT 和代理清单，退出码 0，输出 `pass_review_cases.csv` 28 行；每个半场均为 FP 3、far FN 3、TP 1。
+- PowerShell 逐行核验 28 个源视频路径存在，前后 5 秒审查窗口包含事件时间；分组计数符合预期，退出码 0。CSV SHA-256 `c85a66b1537d3735693e06775271df7a9bb81937d4b1f6d026f205bba06c53fe`。这些是待审时间匹配样本，未宣称视觉判断已通过。
+
+## 2026-11-09——T-U18-024 最终静态与匹配一致性检查
+
+- `conda run -n ballspot-viz python -m py_compile scripts/curate_u18_eval_review.py` 退出码 0；仅有本机 OpenCL `temp.txt` 清理提示。
+- `git diff --check` 退出码 0，仅有 Git 现有 CRLF 转换提示；`git check-ignore` 确认正式指标 JSON 与原始 `scores.npz` 均被忽略。
+- PowerShell 从 `metrics.json` 与 `matches_at_1s.csv` 独立核对 Pass TP=322、Drive proxy FN=972，退出码 0。
+
+## 2026-11-11——T-U18-025 U18 审查网页输入与片段生成
+
+- 开始前检查 `pass_review_cases.csv`：仍为 28 行、人工列全空，但 2026-11-10 被表格软件重存，显示时间码缩短到约 0.1 秒；`source_time_sec` 保留毫秒值。当前 CSV SHA-256 为 `a19392b0772d7d82f27c6f81600e70dc77d0a2b5f62aa0133598387371304aa4`，不同于 2026-11-09 的历史哈希；生成器以数值秒重新计算页面时间码，保留原文件不覆盖。
+- `conda run -n ballspot-viz python scripts/render_u18_eval_review.py --review-csv artifacts/u18_evaluation/20261109_u18_zero_shot_masked_v1/pass_review_cases.csv --proxy-manifest data/u18_inference_20260930_masked_v1/proxy_manifest.json --output-dir artifacts/u18_evaluation/20261109_u18_zero_shot_masked_v1/review_site`，退出码 0；生成并逐段 FFprobe 验证 28 个 1280×720、25 FPS 片段，合计约 67.0 MB。先用独立 `review_site_smoke/` 的 `--limit 1` 运行，亦退出 0。
+- 同生成器以 `--mode drive`、`--review-csv artifacts/u18_ground_truth/20260930_u18_bepro_gt_spatial_v2/drive_mapping_audit.csv`、`--output-dir artifacts/u18_evaluation/20261109_u18_zero_shot_masked_v1/drive_review_site` 运行，退出码 0；生成并逐段验证 50 个片段，合计约 112.4 MB；独立 `drive_review_site_smoke/` 的首条烟雾亦退出 0。两轮均核对四段代理文件大小与 SHA-256。
+- 使用 OpenCV 对两类样本各跨四半场抽一条，比对片段中心帧和 masked 代理对应帧：Pass MAE=1.637/1.306/1.568/1.442；Drive MAE=1.570/1.345/1.733/1.412，全部低于预设阈值 5。未更改输入代理和正式指标。
+
+## 2026-11-11——T-U18-026 浏览器播放、导航和人工字段
+
+- 本地服务先用普通 `python -m http.server` 预览，页面 HTTP 200，但浏览器报告视频 `seekable=[0,0]`，事件按钮无法真正跳帧；改用 `scripts/serve_u18_eval_review.py` 支持字节范围后，视频请求为 HTTP 206，`seekable=[0,10.04]`，事件附近实际播放位置约 5.001 秒。该失败与修复均在浏览器中观察，旧的临时服务已停止。
+- 浏览器检查 Pass 页 28 行、初始进度 0/28、初始浦和样本和毫秒时间码；点击可见性/判断、填写备注后进度为 1/28，重新加载仍保留；导出 CSV 在本机下载目录得到 28 行，选中行值与页面一致；导入该 CSV 后恢复 1/28。随后通过页面清空测试判断，重载确认 0/28；测试导出经内容核对后非破坏性移入 `review_site_smoke/ui_test_export.csv`。
+- 浏览器检查 Drive 页 50 行、初始进度 0/50、事件视频位置约 5.001 秒、顶部任务切换与接球观察/映射选项；填写测试判断后为 1/50，清空后重载为 0/50。Drive 的浏览器「下载 CSV」按钮曾显示已导出提示，但本机下载目录没有观察到对应文件；因此增加更可靠的本地版本化保存入口，未把该次点击记作下载成功。
+
+## 2026-11-11——T-U18-027 本地保存、测试与启动入口
+
+- `review_u18_pass.cmd` 实际启动两页本地服务；Pass 与 Drive 页面均返回 HTTP 200，Drive 视频 `Range: bytes=0-1023` 返回 206 和 1024 字节。服务只绑定 `127.0.0.1`，测试结束后 `Ctrl+C` 退出并确认端口不可访问。
+- 浏览器分别点击两页「保存到项目」，服务返回两个不同的 `review_exports/` 版本化路径；磁盘读取确认 Pass 28 行、Drive 50 行且全为未审状态。两份空白测试文件随后移动到各自 smoke 目录，正式 `review_exports/` 不含测试提交。
+- 新增单元测试覆盖 25 FPS 片段边界、表格软件缩短时间码后的恢复、Drive 字段保留、视频 HTTP 206/416 和 Pass/Drive 本地版本化保存。首次 `conda run ... pytest` 遇到 Windows `cp932` 无法输出失败报告而退出 1；直接调用同一 `ballspot-viz` 环境 Python 显示一项测试因 `Path.read_text` 自动换行转换而失败，该测试已改用原始字节比较并在 `finally` 关闭测试服务。最终 `conda run -n ballspot-viz python -m pytest -q tests/test_render_u18_eval_review.py tests/test_serve_u18_eval_review.py` 为 6 项通过、退出码 0。
+
+## 2026-11-12——T-U18-028 用户 Drive 审查导出身份与完整性检查
+
+- PowerShell `Get-FileHash -Algorithm SHA256`：用户 `C:\Users\logan\Downloads\drive_mapping_audit_reviewed.csv` 与项目 `artifacts/u18_evaluation/20261109_u18_zero_shot_masked_v1/review_exports/drive_review_20261111T071120Z_762f04b5.csv` 哈希同为 `9DFA2862B93918C8C16BA7DFC009D0D4166E817BBE14E315274827F6AB41726A`。
+- 首次 PowerShell `Import-Csv` 比对命令因输入笔误 `$_ .review_comment` 解析失败，退出码 1，未执行数据比较；更正为 `$_.review_comment` 后退出码 0。导出与原 `drive_mapping_audit.csv` 均为 50 行，导出 50 个 `event_id` 唯一且集合相同，所有非人工字段逐格相同，观察与映射列均无空值。
+- `Import-Csv | Group-Object`：`review_mapping` 为 accept 23、reject 20、unclear 7；`review_observation` 为 carry_after_receive 23、control_only 4、one_touch_release 16、unclear 7；交叉表一一对应。14 条带备注，四个半场均出现 accept 与 reject；两个项目 Pass 保存版本均只有 14/28 条 `human_judgment` 已填。核验只读，未更改原 GT、预测或数值指标。
+- 补充 PowerShell 核对：50 行审查字段全部非空；5 条 accept 的数值时间偏移备注均超过 1 秒；下载文件与项目保存文件哈希再次相同。`git diff --check` 退出码 0，仅有仓库已有的 CRLF 转换提示。
+
+## 2026-11-12——T-U18-029 用户 Pass 审查导出身份、完整性和时间核对
+
+- `Get-FileHash -Algorithm SHA256`：用户 `C:\Users\logan\Downloads\pass_review_cases_reviewed.csv` 与项目两份 `pass_review_20261112T052707Z_08fc5c65.csv`、`pass_review_20261112T052719Z_d989054d.csv` 均为 `2F751C94E13DA9EB8ADF55DBE8F3A37ED40BD29DF3C75B0B078B6A78788A8E33`；两份项目文件与下载文件均为 7861 字节。
+- PowerShell `Import-Csv` 比对原 `pass_review_cases.csv`：28 行、28 个唯一 `review_id`，ID 集合完全相同；`human_visibility` 与 `human_judgment` 28 行均非空。非人工字段仅 `source_timecode` 有 28 处显示精度差异，其余逐格一致；导出时间码解析为秒后与未变的 `source_time_sec` 全部在 0.001 秒内一致。
+- `Group-Object algorithmic_status,human_judgment`：FP 7“确有 Pass”/5“类别不符”；FN 9“确有 Pass”/3“时间偏移”；TP 3“确有 Pass”/1“类别不符”。`human_visibility` 为 VISIBLE 26、UNCLEAR 2。备注中 FP 类别不符为射门 1、解围 1、角球 3；TP 类别不符为角球 1；3 条 FN 时间偏移备注为 +1.60、+0.56、-0.55 秒。
+- 首次用于找 7 条视觉 Pass FP 最近 GT 的 PowerShell `foreach` 管道命令因尾部空管道元素解析失败，退出码 1，未执行查询；改为先收集到 `$out` 后退出码 0。7 条各自最近的同半场可评估 Bepro Pass 时间差为 1.23、1.70、1.22、25.54、1.79、2.62、1.43 秒。该最近邻查询不验证是否同一次动作，仅供后续定向复核。全程未更改原 GT、预测和固定协议指标。
+- 更新项目状态及报告后执行 `git diff --check`，退出码 0，仅有既有 LF→CRLF 提示。
+
+## 2026-11-12——T-U18-030 低可见性与偏移备注只读复核
+
+- PowerShell `Import-Csv` 重新读取用户导出的 Pass/Drive 文件：`u18-review-025` 与 `u18-review-026` 均为程序 FN、`human_visibility=UNCLEAR`、`human_judgment=确有 Pass`；`u18-review-028` 为程序 TP、人工“类别不符”、备注“角球”。用户口头确认 025 的 Pass 确实存在但画面极模糊，没有修改审查 CSV。
+- Drive 文件中以“正负号＋带两位小数的秒数”形式筛出的数值偏移备注共 7 条：accept 5（-1.50、+1.75、+1.88、-1.26、-1.06 秒），reject 2（+1.07、+0.89 秒）。本次只核对备注和更新解释，不改动原 Bepro GT、模型分数或固定协议指标。
+
+## 2026-11-12——T-U18-031 Pass 人工判断修订版验证
+
+- 修订前用 PowerShell `Get-FileHash -Algorithm SHA256` 核对项目源审查版本与用户下载导出哈希完全相同；确认 28 行且唯一目标 `u18-review-028` 的原值为程序 TP、人工“类别不符”、备注“角球”。在 `review_exports/` 新建版本化 CSV，不覆盖原文件或下载导出。
+- PowerShell `Import-Csv` 对比修订前后两版：均为 28 行，完整人工判断 28/28；差异严格为 `u18-review-028:human_judgment` 从“类别不符”到“确有 Pass”和 `human_comment` 从“角球”到“角球后的一次传球（用户复核）”，共 2 个单元格。新文件 SHA-256 为 `1520550C1F14C9C468A7678D5C901933BAF4DC4669181B0A09A9BCF1F9BD87EF`；交叉表为 FN 时间偏移 3/FN 确有 Pass 9/FP 确有 Pass 7/FP 类别不符 5/TP 确有 Pass 4。
+- `git check-ignore -v` 确认修订 CSV 被 `/artifacts/` 排除；`git diff --check` 退出码 0，只有现有 LF→CRLF 提示。
+
+## 2026-11-12——T-U18-032 双向整场留出冻结与 Pass 分数重排
+
+- `conda run -n ballspot-viz python scripts/freeze_u18_pass_cv.py --output-dir artifacts/u18_pass_cv/20261112_frozen_v1` 退出 0：先核对 GT、代理清单和原基线 SHA-256，再检验四个代理文件大小与两场互斥分组；输出 A→B 训练/测试 GT 874/777 和 B→A 777/874，以及每轮 JSON 哈希。重算 ±1s 零样本基线：A→B AP 0.256107、TP/FP/FN 31/74/746；B→A AP 0.407898、291/301/583。
+- 首次运行 `train_u18_pass_reranker.py` 退出 1：将平滑后的候选置信度误认为 NPZ 原始逐帧分数。检查后明确分别使用平滑候选分数与原始帧分数两个特征；固定四特征、训练比赛专用标签与阈值规则。`20261112_reranker_v1` 和 `v2` 为开发产物，正式探索结果为 `v3`。
+- `conda run -n ballspot-viz python scripts/train_u18_pass_reranker.py --frozen-dir artifacts/u18_pass_cv/20261112_frozen_v1 --output-dir artifacts/u18_pass_cv/20261112_reranker_v3` 退出 0：A→B AP/P/R 0.258/0.389/0.036；B→A 0.420/0.526/0.372。测试事件保存原平滑分数和重排分数，`comparison.json` 保存两轮模型系数、原始 NPZ 哈希和分组。
+- 首次 `conda run ... verify_u18_pass_cv.py` 因 Windows cp932 无法打印中文输出而退出 1，没有得到验证结论；设置 `PYTHONIOENCODING=utf-8` 后相同验证命令退出 0。两轮均通过训练/测试视频隔离、冻结 GT 和结果哈希、模型系数复算测试分数、三档容差 AP/P/R/F1 和 TP/FP/FN 复算。Conda 激活期间另有 `Access is denied`/OpenCL 临时文件提示，但运行退出码为 0，且已检查上述输出。直接调用环境 Python 的一次验证会话长时间无输出，经 Ctrl+C 停止，未计为通过。
+- 同一 `ballspot-viz` 环境 Python 对三个新增脚本执行 `-m py_compile`，退出 0；`git diff --check` 退出 0，仅有既有 LF→CRLF 警告；`git check-ignore -v` 确认冻结分组与重排模型结果被 `/artifacts/` 排除，不会作为代码提交。
+- 更新步骤、决策、报告和 README 后再次执行 `git diff --check`，退出 0；只报告既有 LF→CRLF 提示。读取 `comparison.json` 确认两个 fold 各只用一场训练、另一场测试，GT 分别 777/874。
+
+## 2026-11-16——T-U18-033 Pass 训练标签定向审查清单与本地网页
+
+- 首次本机默认沙箱的 `exec_command` 连续报 `registered runtime ownership is missing`，未改文件；按运行时规则改用受审的 `require_escalated` 后只读检查成功。仓库根目录无 `.codegraph/`，因此直接读取相关脚本和计划。
+- `conda run -n ballspot-viz python scripts/curate_u18_pass_training_review.py` 按运行手册所列输入正式运行，退出 0；四半场各 8 条。PowerShell `Import-Csv` 独立核验总计 32 条、每半场 FP 4/FN 4、review_id 无重复、与已审 28 条及本批同半场样本都相隔至少 10 秒，32 条人工判断均为空。新 CSV SHA-256 为 `43af659d3347dd7148d2d1b56a8a12ff4411569e0cc6ee9f21042106459600d9`；选择清单记录匹配表、GT、旧审查、代理清单与四段原始预测的哈希。
+- `render_u18_eval_review.py` 运行退出 0，逐条打印 `verified clip 1/32` 至 `32/32`；独立网页和 32 条片段位于 `artifacts/u18_pass_cv/20261116_training_review_v1/review_site/`。生成器先核对四段 masked 代理 SHA-256，再检查每段 25 FPS/帧数并保存片段哈希。页面前端更新后运行 `--page-only` 退出 0，逐片重验哈希并刷新复制的 JS，未重编视频。
+- 临时启动 `serve_u18_eval_review.py --site-dir artifacts/u18_pass_cv/20261116_training_review_v1 --page review_site/index.html --port 8766`；`Invoke-WebRequest` 得页面 HTTP 200，页面含 `u18-train-001` 和 `u18-train-032`；首段视频 `Range: bytes=0-1023` 返回 HTTP 206、1024 字节及正确的 `Content-Range`。以 Ctrl+C 停止后访问端口失败，确认测试服务已关闭。尚未把网页人工填写或实际视觉判断记为完成。
+- 新 Python 脚本的 `py_compile`、`node --check web/u18_eval_review/app.js` 和 `git diff --check` 均退出 0；`git check-ignore -v` 确认 CSV 与网页产物被 `/artifacts/` 排除。首次定向 pytest 因 Conda 的 cp932 输出错误退出 1；设置 UTF-8 后显示 1 项通过、5 项在默认 `C:\Users\logan\AppData\Local\Temp\pytest-of-logan` 因 `WinError 5` 权限错误而未执行。先确认项目内新 `pytest_tmp_first` 目录不存在，再用 `-p no:cacheprovider --basetemp artifacts/u18_pass_cv/20261116_training_review_v1/pytest_tmp_first` 重跑，6 项通过、退出 0。
+- 文档更新后最终 `git diff --check` 退出 0，仅有既有 LF→CRLF 提示。PowerShell `Get-FileHash` 确认生成网页中的 `app.js` 与源码完全一致，并读到新的 `u18_pass_training_reviewed.csv` 下载名；一键启动脚本存在，审查 CSV 仍为 32 行。工作树原有多项未提交改动均保留，未提交或覆盖其他文件。
+
+## 2026-11-16——T-U18-034 Pass 与 Receive 代理指标 Excel 导出
+
+- 从已冻结的 `artifacts/u18_evaluation/20261109_u18_zero_shot_masked_v1/metrics.json` 提取 Pass 与历史 `Drive` 接球代理的 GT 数、全部峰值、±0.5/1/2 秒 AP，以及 ±1 秒阈值 0.2 的 P/R/F1 和 TP/FP/FN；构建器断言 Pass 1651/322/375/1329、接球代理 1191/219/286/972。Artifact Tool 表格检查显示两行与原 JSON 完全一致，公式错误扫描为 0 条。
+- `workbook.render` 生成预览，人工检查标题、数字和“Receive 仅是代理”说明均完整可读。首次构建命令虽显示文件已保存但进程退出码为 1；随后用 bundled Python 的 `openpyxl` 只读加载并以 `zipfile.testzip()` 验证 XLSX 完整性，核对两行关键单元格及代理限制说明，退出码 0。首次只读检查因 Windows cp932 中文输出失败，设置 `PYTHONIOENCODING=utf-8` 后重试通过。
+- 交付文件为 `outputs/01a1bf4b-2962-7880-a996-887db6fc8189/u18_bas_pass_receive_summary.xlsx`，SHA-256 为 `39B067D5B45B95E53222D975EF09C35A8E282C756292A587A40EB986FB3D4B92`；`/outputs/` 已被 `.gitignore` 排除。
+
+## 2026-11-17——T-U18-035 32 条人工审查及隔离训练标签
+
+- `Get-FileHash -Algorithm SHA256`：用户下载 `C:\Users\logan\Downloads\u18_pass_training_reviewed.csv` 与项目 `review_exports/pass_review_20261117T071006Z_ccd3a14b.csv`、`pass_review_20261117T071007Z_e59265ea.csv` 完全相同，均为 `ECAA945DCCA36665A2FE9DB87B8C0998AFCCB71303CDA7F7477F4904EE6BF07F`。逐行核对原 `training_review.csv`：32 个唯一 ID 全部匹配，非人工字段相同，可见性与人工判断 32/32 非空。
+- `conda run -n ballspot-viz python scripts/prepare_u18_pass_training_labels.py ... --output-dir artifacts/u18_pass_cv/20261117_training_labels_v1` 退出 0：A→B 原训练 GT 874、保留 872、排除 2、校正 8、待核补标 13；B→A 777、773、4、5、4。输出清单固定输入/输出哈希。
+- `conda run -n ballspot-viz python scripts/verify_u18_pass_training_labels.py --training-dir artifacts/u18_pass_cv/20261117_training_labels_v1 --frozen-dir artifacts/u18_pass_cv/20261112_frozen_v1` 退出 0：重算冻结及输出哈希、训练/测试视频互斥、原 GT ID 守恒，两个方向均打印 `isolation OK`。Conda 伴随已有 OpenCL 临时文件提示，但脚本退出码为 0。
+- 首次 `py_compile` 对新训练脚本退出 1，原因为 `enumerate` 的生成器表达式未加括号；修复后相同 `py_compile` 对四个脚本退出 0。`git diff --cached --check` 退出 0。
+
+## 2026-11-17——T-U18-036 Slurm Pass 分类头冒烟及远端传输
+
+- 代码提交 `d7e6f0e` 经 GitHub 推送，并在 `chiron` 干净工作区 `git pull --ff-only` 到同一提交；只有代码进 Git。训练标签 JSON 通过 `scp -r` 独立传输，远端 Python 重算两轮所有输出 SHA-256 与本地 `manifest.json` 一致，远端训练/推理脚本 `py_compile` 退出 0。
+- 首个 Slurm 冒烟 `6930736` 失败：远端已有四段代理视频，但缺 `proxy_manifest.json`。通过 `scp` 单独传清单，远端 `sha256sum` 为 `e78853cf46c3e7455bc402f674206a991adf2e7ea4423df0c3b07e1aec1962b3`，与冻结配置一致。
+- 重试 Slurm `6930737` 输出 4 正/4 负、30 epoch，最终训练损失 0.654141，生成权重 SHA-256 `cfeb7c6077a73419fa4bdf66a0805045d4be5140d222950f93f0d3ea8b73387b`。远端 CPU `torch.load` 比较初始与新权重：`nn_state_dict` 和 `no_ema_nn_state_dict` 均仅 `classifier.weight`、`classifier.bias` 字段变化，其中 Drive 行逐元素相同，Pass 行不同；退出 0。`sacct` 因集群关闭 accounting storage 而退出 1，故本条以完整作业日志、产物和权重读回为证据。
+- 两轮完整训练经 Slurm 提交为 `6930738`、`6930739`，提交时均显示 `RUNNING`，不可在完成前报告训练或测试性能。
+- 既有四段原始七折分数以新增 `--fold-index 0` 和固定 `sigma=3`、`min-height=0`、最短峰距 15 帧另生成单 fold 对照峰值。四段后处理退出 0，Pass 峰值分别 1545、1605、1548、1696；输入 NPZ 哈希及所用 `fold_scores[:, 0, :]` 已记录在各 `postprocess_manifest.json`。尚待与完整训练模型作同片段指标对照。
+
+## 2026-11-17——T-U18-037 接球代理避让与第二版 Slurm 训练
+
+- 首版正式训练作业 `6930738`、`6930739` 各生成一份模型，正负例分别 872/872 和 773/773；远端 CPU 逐项对比仅 Pass 分类头一行变化，权重 SHA-256 分别 `b6846068feb11ea2199a3b27bbbd62a39598e94b19eedaf58b93ba041104a1d7`、`a246dca24672be492dc9d2194f42616287cb81f59032b5842114668cfd514f93`。后续发现首版负例未避开接球代理，首版模型降为诊断，不据此声称改善。
+- `conda run -n ballspot-viz python scripts/prepare_u18_pass_training_labels.py ... --output-dir artifacts/u18_pass_cv/20261117_training_labels_v2` 退出 0；保留 v1 相同的 872/773 Pass 和 2/4 排除、8/5 校正、13/4 待核补标，另逐训练比赛输出 656/535 条接球代理避让记录。`verify_u18_pass_training_labels.py` 对 v2 退出 0，原冻结 GT 哈希、文件哈希、比赛隔离及计数均通过。远端单独传输后重算 v2 所有输出 SHA-256 与清单一致。
+- 修订脚本 `py_compile` 退出 0；经 GitHub 提交 `15325f4`、`694a831` 同步到远端。第二版 Slurm 冒烟 `6930747` 生成 4 正/4 负权重，日志显示 `drive_proxy_events_avoided=656`；第二版正式训练作业 `6930748`、`6930749` 已提交，待结果验证。
+- 远端登录节点仅用 CPU 调用新版 `select_examples`，按固定种子重建两个方向的 1744/1546 个窗口，分别包含 872/773 个负例；逐负例与该轮所有已知训练 Pass、排除 Bepro Pass、待核补标预测及接球代理时间求最近距离，最小为 3.003/3.001 秒，均严格大于 3 秒，退出 0。此检查不保证未标注的 Drive 不落在负例里。
+- 从四段原始七折 NPZ 重算 fold 0 单模型固定阈值 0.2、±1 秒基线：浦和留出 777 GT、3244 峰，AP 0.184671、P 0.227273、R 0.012870、TP/FP/FN 10/34/767；FC 东京留出 874 GT、3150 峰，AP 0.450637、P 0.438570、R 0.673913、TP/FP/FN 589/754/285。此值是与分类头微调同容量的原模型对照，不替代七折基线。
+
+## 2026-11-17——T-U18-038 第二版训练权重与采样窗口验证
+
+- Slurm `6930748`/`6930749` 日志均完整输出 30 epoch 与模型清单，正式正负例 872/872、773/773，最终训练损失分别 0.647237、1.082724。远端 CPU `torch.load` 与原 fold 0 权重逐张量比较：两个模型的 `nn_state_dict` 和 `no_ema_nn_state_dict` 均只有 `classifier.weight`、`classifier.bias` 字段变化，Drive 行逐元素一致；新权重 SHA-256 分别 `d1e79c0a5f1dddd7a77add589bf013ddf6386d30ad7adab9ade3758e691f6740`、`0f8ed23dea7c7edc8a02df802f65d507c51214e78f108157fe18fd75d60486fb`，与模型清单一致，退出 0。
+- 通过 `scp` 单独取回两个正式模型 `manifest.json` 与 `training_examples.json`；`conda run -n ballspot-viz python scripts/verify_u18_pass_head_training.py --labels-root artifacts/u18_pass_cv/20261117_training_labels_v2 --models-root artifacts/u18_pass_cv/20261117_pass_head_models_v2` 退出 0，验证清单哈希、所有正例 ID/25 FPS 帧号、训练测试视频互斥及负例与所有训练比赛已知 Pass/待核 Pass/接球代理的最短间距 3.003/3.001 秒。Conda 的既有 OpenCL 临时文件提示不影响退出码。
+- 四段第二版留出推理通过 Slurm 作业 `6930750`～`6930753` 提交，提交后均为 `RUNNING`；结果尚待完整分数/代理 SHA-256 及本地复评。
+
+## 2026-11-17——T-U18-039 首版诊断推理与本地比较流水线冒烟
+
+- 首版四段 Slurm 推理 `6930743`～`6930746` 均生成 `completed` 原始分数与清单；通过 `scp -r` 单独取回。`verify_u18_pass_head_inference.py --experiment-suffix v1` 退出 0：四段分别 67858、77287、69090、75880 帧，连续 25 FPS 时间轴、单 fold 两类分数、masked 视频哈希、模型权重哈希和 TTA 均正确；原始 NPZ SHA-256 分别 `1909d4e089193340f8e796ec0118648ee7d9e85e26e63d4ffe3bef358799bb93`、`8a8ce9c981c606ae68f9112f23486a98b71e250338345c28e9dfaa81397b006e`、`7069205af0414c29c4bb48abf1dd6dac4b21ea249679c8a902cc72b4b911dd44`、`e0fff444e2d9f9077e583ea00ae59c9bd13f25b766ad813a35d51695c879a2b7`。
+- 四段 `postprocess_scores.py --min-height 0.0` 均退出 0，得到 Pass 峰值 1587、1738、1568、1640。`compare_u18_pass_head.py --experiment-suffix v1` 退出 0，验证两轮测试比赛、原始分数哈希、同样后处理与模型清单并生成逐事件匹配表；首版 AP@1s 为 0.185→0.192、0.451→0.453，P/R 分别 0.227/0.013→0.252/0.120 和 0.439/0.674→0.325/0.836。**首版采样未避开接球代理，只作为流水线诊断和误差来源记录，不作为最终模型效果。**第二版结果仍待完成。
+
+## 2026-11-17——T-U18-040 第二版原始分数、同片段评估与错例核对
+
+- 第二版 Slurm 推理 `6930750`～`6930753` 四段完整完成；`scp -r` 单独取回原始 NPZ 与 manifest。远端 `sha256sum` 与本地 `Get-FileHash` 四段逐个一致：浦和 H1 `61f94b08aa08545bd0b9926b749a15dd2bf6fe701933f5f6712f565d4962f526`、H2 `3e1cc0b9b66e3b0638fe8a42b0b763ce7bcea84750ee8c0802bd760b2be8f736`，FC 东京 H1 `1ddda8384f1e00bba5401a3cdaca7175ec6be688fd1071ac8edb47255d6bc94b`、H2 `e298f65f1e81dbec5500a28ab064c311117e9e2ec47f3b0630cce85abb5ebee9`。
+- `conda run -n ballspot-viz python scripts/verify_u18_pass_head_inference.py --inference-root artifacts/u18_pass_cv/20261117_pass_head_inference_v2 --models-root artifacts/u18_pass_cv/20261117_pass_head_models_v2 --proxy-manifest data/u18_inference_20260930_masked_v1/proxy_manifest.json --experiment-suffix v2` 退出 0：四段分别 67858、77287、69090、75880 个连续 25 FPS 预测帧；验证 masked 代理哈希、1 fold×2 类原始分数、有限概率、集成等于单 fold、TTA 和权重哈希。
+- 四段 `postprocess_scores.py --min-height 0.0` 退出 0，使用与基线相同 `sigma=3`、最短峰距 15 帧，得到 Pass 峰值 1587、1738、1568、1640。`compare_u18_pass_head.py --experiment-suffix v2` 退出 0，重新核对冻结测试 GT、模型清单、代理和分数 SHA-256，并输出 `20261117_head_comparison_v2/comparison.json` 及两轮基线/适配逐事件匹配 CSV。独立 PowerShell `Import-Csv` 对每轮 TP/FP/FN 计数与 JSON 一致，四个匹配 CSV SHA-256 均与比较清单一致。
+- ±1 秒、阈值 0.2：浦和留出 777 GT、原 fold 0 3244 峰/44 个操作预测、AP 0.184671、TP/FP/FN 10/34/767、P/R 0.227273/0.012870；适配 3325 峰/369 预测、AP 0.192281、93/276/684、P/R 0.252033/0.119691，near 6/253→52/253、far 2/325→25/325。FC 东京留出 874 GT、原 fold 0 3150 峰/1343 预测、AP 0.450637、589/754/285、P/R 0.438570/0.673913；适配 3208 峰/2252 预测、AP 0.453014、731/1521/143、P/R 0.324600/0.836384，near 182/260→224/260、far 222/309→268/309。±0.5/2 秒 AP 和完整指标见比较 JSON。Conda 的既有 OpenCL 临时文件提示没有改变退出码。
+- 用固定种子在远端 CPU 复算 v1/v2 负例：FC 东京训练轮替换 195 个负例，其中 v1 有 54 个处于接球代理 ±3 秒；浦和训练轮替换 148 个，其中 v1 有 56 个处于接球代理 ±3 秒。v1/v2 的 ±1 秒 TP/FP/FN 相同、AP 仅在小数后多位有差异；第二版仍是语义上更保守的正式输入。人工已审 `u18-train-013` 为改进后 TP，`u18-train-031` 仍 FN；`u18-train-027` 的人工“角球”附近 0.04 秒有适配 Pass 峰约 0.855。后者是时间邻近观察，不能证明同一脚动作。
+
+## 2026-11-17——T-U18-041 待补 Pass 身份复核页面与片段验证
+
+- 首次 `prepare_u18_pass_identity_queue.py` 输出 `20261117_pending_pass_identity_v1` 的 17 行 CSV，5 条最近 Bepro Pass 时间差超过 3 秒；随后扩充片段起始时间、哈希、逐帧页面和 JSON，另建 v2，不覆盖 v1。`conda run -n ballspot-viz python -m py_compile scripts/prepare_u18_pass_identity_queue.py` 与 v2 生成命令均退出 0；输入旧/新审查和冻结 GT SHA-256 在 manifest 固定，v2 CSV SHA-256 `7a0314ae65dc9201ef1c6389afda9103df7d802f9436fe2ef171f073c9dd83a7`。
+- 独立 PowerShell 核验 v2 的 CSV/JSON 各 17 行、5 条 P1、17 条人工输出字段均为空，17 个原遮挡片段均存在且生成器重算 SHA-256 与原片段清单一致；`identity_review.csv`、`review_data.json`、`index.html` 的 SHA-256 均与新 manifest 一致。提取网页内 JavaScript 后 `node --check` 退出 0。
+- 用 `serve_u18_eval_review.py --site-dir . --page artifacts/u18_pass_cv/20261117_pending_pass_identity_v2/index.html --port 8767` 临时启动本地服务，`Invoke-WebRequest` 页面 HTTP 200、JSON HTTP 200、片段 `Range: bytes=0-1023` HTTP 206 且恰 1024 字节。实际 IAB 浏览器显示默认 5 条、首条最近 GT 信息、视频与半场秒/帧号；点击“下一条”后 ID 与最近 GT 更新到下一条。测试后 Ctrl+C 停服务；一次 2 秒超时的 HTTP 结束检查因异常类型不匹配退出 1，随后 `Get-NetTCPConnection -LocalPort 8767 -State Listen` 显示 0 个监听，确认已停止。未填写任何用户审核答案。

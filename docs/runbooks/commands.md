@@ -352,3 +352,242 @@ ssh chiron 'cd /work7/y_pan/Code_repo/Ball_action_spotting && sbatch scripts/slu
   --tolerances 0.5,1.0,2.0 `
   --operating-threshold 0.2
 ```
+
+### U18 四半场 masked 基线后处理与评估——已验证（2026-11-09）
+
+三个后补半场的 `manifest.json` 与 `scores.npz` 已从 `chiron` 的 `artifacts/inference/u18_<video_id>_masked_v1/` 取回本地同名目录，并逐文件比对 SHA-256；原 FC 东京/青森山田 H1 目录已存在。确认目标输出目录尚不存在后，在本地 PowerShell 顺序运行：
+
+```powershell
+$items = @(
+  @('fc_tokyo_aomori_h2', 'u18_fc_tokyo_aomori_h2_masked_v1'),
+  @('urawa_ryutsu_h1', 'u18_urawa_ryutsu_h1_masked_v1'),
+  @('urawa_ryutsu_h2', 'u18_urawa_ryutsu_h2_masked_v1')
+)
+foreach ($item in $items) {
+  $src = Join-Path 'artifacts/inference' $item[1]
+  $dst = Join-Path 'artifacts/u18_predictions/20261001_u18_zero_shot_masked_v1' $item[0]
+  conda run -n ballspot-viz python scripts/postprocess_scores.py `
+    --scores (Join-Path $src 'scores.npz') `
+    --inference-manifest (Join-Path $src 'manifest.json') `
+    --output-dir $dst --gauss-sigma 3 --min-height 0 --min-distance-frames 15
+  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
+conda run -n ballspot-viz python scripts/evaluate_u18_predictions.py `
+  --ground-truth artifacts/u18_ground_truth/20260930_u18_bepro_gt_spatial_v2/gt_events_evaluable.json `
+  --predictions-root artifacts/u18_predictions/20261001_u18_zero_shot_masked_v1 `
+  --output-dir artifacts/u18_evaluation/20261109_u18_zero_shot_masked_v1 `
+  --tolerances 0.5,1.0,2.0 --operating-threshold 0.2
+conda run -n ballspot-viz python scripts/curate_u18_eval_review.py `
+  --matches artifacts/u18_evaluation/20261109_u18_zero_shot_masked_v1/matches_at_1s.csv `
+  --ground-truth artifacts/u18_ground_truth/20260930_u18_bepro_gt_spatial_v2/gt_events_evaluable.json `
+  --proxy-manifest data/u18_inference_20260930_masked_v1/proxy_manifest.json `
+  --output artifacts/u18_evaluation/20261109_u18_zero_shot_masked_v1/pass_review_cases.csv
+```
+
+上述脚本均拒绝覆盖现有输出；重跑必须使用新的输出目录，不能删除或覆盖已验证的基线。`pass_review_cases.csv` 的 FP/FN 仍需人工核查。
+
+### U18 Pass 错例与 Drive 语义本地审查网页——已验证（2026-11-11）
+
+在本机双击 `C:\Code\Ball_action_spotting\review_u18_pass.cmd`，或在项目根目录运行：
+
+```powershell
+cmd /c review_u18_pass.cmd
+```
+
+该脚本在 `127.0.0.1:8765` 启动本地服务并打开 Pass 页面；顶部「Drive 语义」切到 50 条接球样本。页面选择自动保存在当前浏览器；点击「保存到项目」在 `artifacts/u18_evaluation/20261109_u18_zero_shot_masked_v1/review_exports/` 创建新的完整 CSV（Pass 28 行或 Drive 50 行）。「下载 CSV」是备用出口；下次可在各自页面「导入之前导出的审查 CSV」续审。审查结束后在命令窗口按 `Ctrl+C` 关闭服务。
+
+生成器 `scripts/render_u18_eval_review.py` 已用 `--mode pass` 和 `--mode drive` 分别完成 28/50 条片段生成；现有 `review_site/` 与 `drive_review_site/` 均已生成，无需再次运行。网页代码更新而片段未变时，已验证 `--page-only` 可核验全部片段哈希后刷新页面资产；使用前确认 `--review-csv`、`--mode`、`--output-dir` 与原 `manifest.json` 相符，避免覆盖人工修改的页面。
+
+### U18 Pass / reception 候选帧图集——已验证
+
+```powershell
+conda run -n ballspot-viz python scripts/curate_u18_candidate_frames.py `
+  --output-dir artifacts/u18_frame_candidates/20261002_u18_frame_candidates_v1
+
+conda run -n ballspot-viz python scripts/verify_u18_candidate_frames.py `
+  artifacts/u18_frame_candidates/20261002_u18_frame_candidates_v1
+```
+
+生成器拒绝覆盖已有运行目录。首版有 120 条候选，图集位于该目录的 `index.html`；可在本机浏览器勾选、填写确认帧号和备注并导出名单。源时间、比赛时间、原视频零起始帧索引和一起始帧编号均在 `review.csv`。如需重新生成，改用新的输出目录；额外已用事件/时刻清单可通过 `--extra-exclusions <CSV>` 提供，CSV 至少包含 `event_id` 或 `video_id,source_time_sec`。同一 Windows 会话中的多条 `conda run` 建议串行执行，以避免临时激活文件竞争。
+
+### U18 大画面、前后各 5 秒逐帧审查——已验证
+
+```powershell
+conda run -n ballspot-viz python scripts/render_u18_frame_review.py `
+  --candidate-dir artifacts/u18_frame_candidates/20261002_u18_frame_candidates_v1
+
+conda run -n ballspot-viz python scripts/verify_u18_frame_review.py `
+  artifacts/u18_frame_candidates/20261002_u18_frame_candidates_v1
+```
+
+首次命令在既有运行目录的 `clips/` 生成 120 个遮挡片段，并把同一 `index.html` 升级为单列大图和逐帧看片界面；旧页面复制到 `index_small_v1.html`，既有 `review.csv` 保持不变。页面沿用原路径，因此浏览器内已保存的勾选与备注可继续使用。刷新页面后打开任一候选的片段，按左右方向键逐帧、按 Shift+左右方向键跳 1 秒；确认帧号后勾选并导出 CSV。片段编码前遮挡 Bepro 文字；未提供干净 Veo 原片时，请勿将片段当成无损源视频。
+
+若仅修改页面布局或交互，且已有 `clip_manifest.json`，可运行已验证的 `conda run -n ballspot-viz python scripts/render_u18_frame_review.py --candidate-dir artifacts/u18_frame_candidates/20261002_u18_frame_candidates_v1 --gallery-only`，无需重编 120 个片段。导出中的 `suggested_frame_image` 是 GT 建议图；人工选定的实际帧由 `source_video` 和 `chosen_frame_index` 确定。
+
+### U18 人工确认帧共享包——已验证
+
+以下路径和参数对应 2026-10-06 已验证的 100 行用户导出；生成器拒绝覆盖已有输出目录。再次制作时应使用新运行目录，不要直接覆盖本次 ZIP。
+
+```powershell
+conda run -n ballspot-viz python scripts/package_u18_selected_frames.py `
+  --selection 'C:\Users\logan\Downloads\u18_selected_frames (1).csv' `
+  --candidate-dir artifacts/u18_frame_candidates/20261002_u18_frame_candidates_v1 `
+  --output-dir artifacts/u18_selected_frames/20261006_u18_selected_frames_v1
+
+conda run -n ballspot-viz python scripts/verify_u18_selected_frames.py `
+  artifacts/u18_selected_frames/20261006_u18_selected_frames_v1 `
+  artifacts/u18_frame_candidates/20261002_u18_frame_candidates_v1
+```
+
+共享 `u18_selected_frames_100.zip`；解压后 `selected_frames.csv` 的 `selected_frame_image` 相对路径与 100 张确认帧一一对应。不要把候选目录 `frames/` 中的 GT 建议图当成最终图片。
+
+### U18 Pass 双向整场留出基线和分数重排——已验证
+
+在仓库根目录依次运行；三个脚本均拒绝覆盖既有输出目录，再次运行应换新目录名。结果位于被 Git 忽略的 `artifacts/`，不可提交到 GitHub。
+
+```powershell
+conda run -n ballspot-viz python scripts/freeze_u18_pass_cv.py `
+  --output-dir artifacts/u18_pass_cv/20261112_frozen_v1
+
+conda run -n ballspot-viz python scripts/train_u18_pass_reranker.py `
+  --frozen-dir artifacts/u18_pass_cv/20261112_frozen_v1 `
+  --output-dir artifacts/u18_pass_cv/20261112_reranker_v3
+
+conda run -n ballspot-viz python scripts/verify_u18_pass_cv.py `
+  --frozen-dir artifacts/u18_pass_cv/20261112_frozen_v1 `
+  --reranker-dir artifacts/u18_pass_cv/20261112_reranker_v3
+```
+
+Windows 控制台若因中文异常文本触发 `conda run` 的 cp932 输出错误，可先在当前 PowerShell 会话设置 `$env:PYTHONIOENCODING='utf-8'` 后重试。分数重排只用本地现有原始分数，不是网络权重训练；网络训练仍须在 `chiron` 经 Slurm 运行。
+
+### U18 Pass 训练标签定向审查——已验证的生成与服务参数
+
+以下生成命令对应已核对的 2026-11-16 输入，产物目录已有内容；再次运行须使用全新的 `--output-dir`，不得覆盖用户审查结果。`--page-only` 已验证可在不重编视频的情况下刷新网页，并逐片核对哈希。
+
+```powershell
+conda run -n ballspot-viz python scripts/curate_u18_pass_training_review.py `
+  --matches artifacts/u18_evaluation/20261109_u18_zero_shot_masked_v1/matches_at_1s.csv `
+  --ground-truth artifacts/u18_ground_truth/20260930_u18_bepro_gt_spatial_v2/gt_events_evaluable.json `
+  --prior-review artifacts/u18_evaluation/20261109_u18_zero_shot_masked_v1/review_exports/pass_review_20261112T054717Z_028_corrected.csv `
+  --proxy-manifest data/u18_inference_20260930_masked_v1/proxy_manifest.json `
+  --predictions-root artifacts/u18_predictions/20261001_u18_zero_shot_masked_v1 `
+  --output-dir artifacts/u18_pass_cv/20261116_training_review_v1
+
+conda run -n ballspot-viz python scripts/render_u18_eval_review.py `
+  --review-csv artifacts/u18_pass_cv/20261116_training_review_v1/training_review.csv `
+  --mode pass `
+  --proxy-manifest data/u18_inference_20260930_masked_v1/proxy_manifest.json `
+  --output-dir artifacts/u18_pass_cv/20261116_training_review_v1/review_site
+```
+
+审查时在本机双击 `review_u18_pass_training.cmd`；它使用已通过 HTTP 200/206 检查的本地回环服务及端口 8766。32 条人工判断已完成，网页可用于复核；版本化结果位于 `artifacts/u18_pass_cv/20261116_training_review_v1/review_exports/`。不回写冻结 GT。
+
+### U18 Pass 人工审查转训练标签——已验证
+
+以下命令已在本机 `ballspot-viz` 环境执行，输出目录为已生成版本，不可再次覆盖；重做须使用新目录并重新核对所有输入哈希。
+
+```powershell
+conda run -n ballspot-viz python scripts/prepare_u18_pass_training_labels.py `
+  --frozen-dir artifacts/u18_pass_cv/20261112_frozen_v1 `
+  --prior-source artifacts/u18_evaluation/20261109_u18_zero_shot_masked_v1/pass_review_cases.csv `
+  --prior-reviewed artifacts/u18_evaluation/20261109_u18_zero_shot_masked_v1/review_exports/pass_review_20261112T054717Z_028_corrected.csv `
+  --new-source artifacts/u18_pass_cv/20261116_training_review_v1/training_review.csv `
+  --new-reviewed artifacts/u18_pass_cv/20261116_training_review_v1/review_exports/pass_review_20261117T071006Z_ccd3a14b.csv `
+  --output-dir artifacts/u18_pass_cv/20261117_training_labels_v1
+
+conda run -n ballspot-viz python scripts/verify_u18_pass_training_labels.py `
+  --training-dir artifacts/u18_pass_cv/20261117_training_labels_v1 `
+  --frozen-dir artifacts/u18_pass_cv/20261112_frozen_v1
+```
+
+远端训练标签和 `proxy_manifest.json` 已通过 `scp` 单独传输并核对 SHA-256。Slurm 冒烟命令已验证，作业 `6930737` 完成，**正式训练命令已执行但模型结果未完成验证**：
+
+```bash
+sbatch scripts/slurm/u18_pass_head_train.sh A_train_B_test artifacts/u18_pass_cv/20261117_training_labels_v1 artifacts/u18_pass_cv/20261117_head_smoke_A 2
+sbatch scripts/slurm/u18_pass_head_train.sh A_train_B_test artifacts/u18_pass_cv/20261117_training_labels_v1 ball_action/experiments/u18_pass_head_A_train_B_test_v1
+sbatch scripts/slurm/u18_pass_head_train.sh B_train_A_test artifacts/u18_pass_cv/20261117_training_labels_v1 ball_action/experiments/u18_pass_head_B_train_A_test_v1
+```
+
+原始七折 NPZ 的 `fold_scores[:, 0, :]` 单模型基线另行后处理，四段均已验证。下例为 FC 东京 H1；其余三个半场使用相同参数和各自路径。
+
+```powershell
+conda run -n ballspot-viz python scripts/postprocess_scores.py `
+  --scores artifacts/inference/u18_fc_tokyo_aomori_h1_masked_v1/scores.npz `
+  --inference-manifest artifacts/inference/u18_fc_tokyo_aomori_h1_masked_v1/manifest.json `
+  --output-dir artifacts/u18_pass_cv/20261117_fold0_baseline_v1/fc_tokyo_aomori_h1 `
+  --fold-index 0 --min-height 0.0
+```
+
+留出视频上的分类头模型 Slurm 推理通用模板如下；具体 v2 参数已经执行并列在下节：
+
+```bash
+sbatch scripts/slurm/u18_pass_head_inference.sh <masked_proxy_mp4> <per_video_config_yaml> <inference_end_sec> <experiment_name> <new_output_dir>
+```
+
+### U18 Pass 接球代理负例避让修订——已验证的训练命令
+
+`20261117_training_labels_v2` 的生成命令与上节 v1 完全相同，仅将新的 `--output-dir` 设为 `artifacts/u18_pass_cv/20261117_training_labels_v2`；本机生成、独立验证、远端 SHA-256 核对均已执行。正式训练作业以下列命令提交并完成：
+
+```bash
+sbatch scripts/slurm/u18_pass_head_train.sh A_train_B_test artifacts/u18_pass_cv/20261117_training_labels_v2 ball_action/experiments/u18_pass_head_A_train_B_test_v2
+sbatch scripts/slurm/u18_pass_head_train.sh B_train_A_test artifacts/u18_pass_cv/20261117_training_labels_v2 ball_action/experiments/u18_pass_head_B_train_A_test_v2
+```
+
+前述 v1 留出推理模板已实际用于四段首版测试视频，作业 `6930743`～`6930746` 均已完成；首版仍仅供诊断，正式比较使用 v2。
+
+### U18 Pass 分类头第二版同片段复评——已验证
+
+以下四段 Slurm 推理已分别以作业 `6930750`～`6930753` 执行完成；再次运行须使用新的输出目录，不可覆盖原始分数。远端原始 NPZ 已单独取回并逐个对比 SHA-256。示例为浦和 H1，其余三段分别替换视频、逐视频 YAML、结束秒数、训练轮实验名和新目录：
+
+```bash
+sbatch scripts/slurm/u18_pass_head_inference.sh \
+  data/u18_inference_20260930_masked_v1/urawa_ryutsu_h1_25fps_masked.mp4 \
+  data/u18_inference_20260930_masked_v1/urawa_ryutsu_h1.yaml \
+  2716.96 u18_pass_head_A_train_B_test_v2 \
+  artifacts/u18_pass_cv/20261117_pass_head_inference_v2/A_train_B_test/urawa_ryutsu_h1/inference
+```
+
+本机完整验证、单段后处理和双向比较均已执行并退出 0。后处理四段用相同 `--min-height 0.0`、默认 `sigma=3`/最短峰距 15 帧；下例为浦和 H1。命令中的目录已存在，重做必须换新运行版本。
+
+```powershell
+conda run -n ballspot-viz python scripts/verify_u18_pass_head_training.py `
+  --labels-root artifacts/u18_pass_cv/20261117_training_labels_v2 `
+  --models-root artifacts/u18_pass_cv/20261117_pass_head_models_v2
+
+conda run -n ballspot-viz python scripts/verify_u18_pass_head_inference.py `
+  --inference-root artifacts/u18_pass_cv/20261117_pass_head_inference_v2 `
+  --models-root artifacts/u18_pass_cv/20261117_pass_head_models_v2 `
+  --proxy-manifest data/u18_inference_20260930_masked_v1/proxy_manifest.json `
+  --experiment-suffix v2
+
+conda run -n ballspot-viz python scripts/postprocess_scores.py `
+  --scores artifacts/u18_pass_cv/20261117_pass_head_inference_v2/A_train_B_test/urawa_ryutsu_h1/inference/scores.npz `
+  --inference-manifest artifacts/u18_pass_cv/20261117_pass_head_inference_v2/A_train_B_test/urawa_ryutsu_h1/inference/manifest.json `
+  --output-dir artifacts/u18_pass_cv/20261117_pass_head_inference_v2/A_train_B_test/urawa_ryutsu_h1 `
+  --min-height 0.0
+
+conda run -n ballspot-viz python scripts/compare_u18_pass_head.py `
+  --frozen-dir artifacts/u18_pass_cv/20261112_frozen_v1 `
+  --baseline-root artifacts/u18_pass_cv/20261117_fold0_baseline_v1 `
+  --improved-root artifacts/u18_pass_cv/20261117_pass_head_inference_v2 `
+  --model-manifests-root artifacts/u18_pass_cv/20261117_pass_head_models_v2 `
+  --proxy-manifest data/u18_inference_20260930_masked_v1/proxy_manifest.json `
+  --experiment-suffix v2 `
+  --output-dir artifacts/u18_pass_cv/20261117_head_comparison_v2
+```
+
+完整结果及代表错例见 `docs/reports/u18_pass_head_comparison_20261117.md`。`Drive` 输出行保留原权重，不能据此报告正式 Drive 或 Receive 性能。
+
+### U18 Pass 视觉 FP 身份与准确帧复核——已验证的生成与页面入口
+
+下列命令已生成 `20261117_pending_pass_identity_v2` 并验证 17 个遮挡片段哈希、5 条高优先级、网页数据与浏览器切换。该目录已存在，重建须使用新输出目录；人工结果尚为空。
+
+```powershell
+conda run -n ballspot-viz python scripts/prepare_u18_pass_identity_queue.py `
+  --prior-review artifacts/u18_evaluation/20261109_u18_zero_shot_masked_v1/review_exports/pass_review_20261112T054717Z_028_corrected.csv `
+  --new-review artifacts/u18_pass_cv/20261116_training_review_v1/review_exports/pass_review_20261117T071006Z_ccd3a14b.csv `
+  --frozen-dir artifacts/u18_pass_cv/20261112_frozen_v1 `
+  --output-dir artifacts/u18_pass_cv/20261117_pending_pass_identity_v2
+```
+
+本机双击 `review_u18_pass_identity.cmd`，页面默认先看 5 条，支持切换全部 17 条、逐帧取半场秒数与 25 FPS 零起始帧号、浏览器草稿及下载 CSV。页面只监听 `127.0.0.1:8767`，结束后关闭命令窗口或按 Ctrl+C。最近 Bepro Pass 仅为时间提示；先判事件是否相同，再记录准确时间。人工导出 `u18_pass_identity_reviewed.csv` 后另存版本，不覆盖空白清单或冻结测试 GT。

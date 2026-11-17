@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>U18 BAS · Pass 人工复核</title>
+  <meta name="description" content="本地离线 U18 BAS Pass 事件人工复核工具">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="mark">BAS</span><div><strong>U18 Pass 复核</strong><small>四个半场 · 遮挡 Bepro 文字的视频</small></div></div>
+    <nav class="site-nav" aria-label="审查任务"><a id="pass-link" href="../review_site/index.html">Pass 错例</a><a id="drive-link" href="../drive_review_site/index.html">Drive 语义</a></nav>
+    <div class="top-actions"><span id="progress" class="progress" aria-live="polite">载入中…</span><button id="save-project" class="primary" type="button">保存到项目</button><button id="export" class="secondary" type="button">下载 CSV</button></div>
+  </header>
+  <div class="shell">
+    <aside class="sidebar" aria-label="样本列表">
+      <div class="sidebar-head"><h2>待审样本</h2><p>先看浦和 14 条，再用 FC 东京对照。</p></div>
+      <div class="filters">
+        <label>半场<select id="video-filter"><option value="">全部半场</option></select></label>
+        <label>匹配状态<select id="status-filter"><option value="">FP / FN / TP</option><option>FP</option><option>FN</option><option>TP</option></select></label>
+        <label>人工进度<select id="review-filter"><option value="">全部</option><option value="pending">未完成</option><option value="done">已完成</option></select></label>
+      </div>
+      <div id="case-list" class="case-list" role="list"></div>
+    </aside>
+    <main class="main">
+      <div class="intro"><div><span id="case-kicker" class="eyebrow"></span><h1 id="case-title"></h1><p id="case-subtitle"></p></div><span id="status-pill" class="pill"></span></div>
+      <section class="player-panel" aria-label="视频审查">
+        <div class="video-wrap"><video id="clip-video" controls playsinline preload="metadata"></video><div id="video-error" class="video-error" hidden>片段未能播放。<a id="clip-link" target="_blank" rel="noopener">单独打开视频文件</a></div></div>
+        <div class="timeline"><span id="start-label"></span><input id="frame-slider" type="range" min="0" value="0" aria-label="片段逐帧进度"><span id="end-label"></span><span id="event-tick" aria-hidden="true"></span></div>
+        <div class="player-controls"><button id="back-second" type="button">−1 秒</button><button id="back-frame" type="button">−1 帧</button><button id="event-jump" type="button" class="event-button">跳到事件</button><button id="forward-frame" type="button">+1 帧</button><button id="forward-second" type="button">+1 秒</button><span id="clock" class="clock"></span></div>
+      </section>
+      <section class="review-panel" aria-label="人工判断">
+        <div class="field"><h2>1 · 动作可见吗？</h2><div id="visibility-options" class="choice-row" role="group" aria-label="动作可见性"></div></div>
+        <div class="field"><h2>2 · 画面里发生了什么？</h2><div id="judgment-options" class="choice-row" role="group" aria-label="人工判断"></div></div>
+        <label class="note-label" for="human-comment">3 · 简要说明（可选）</label><textarea id="human-comment" rows="2" placeholder="如：传球在 00:20:40.1；球在画面外；左下遮罩挡住触球…"></textarea>
+        <div class="review-actions"><button id="previous" type="button">上一条</button><button id="next" type="button" class="primary">下一条 →</button></div>
+      </section>
+      <p class="help"><strong>如何判断：</strong>FP＝模型报了 Pass，但 ±1 秒内未匹配 Bepro；FN＝有 Bepro Pass，但没有匹配的高分预测；TP＝匹配成功的参照。这只是程序状态。只根据球和球员画面判断；看不清就选「无法判断」。<br><span>快捷键：空格播放/暂停，←/→ 逐帧，Shift+←/→ 跳 1 秒，N/P 切换样本。选择自动保存在当前浏览器；请按「保存到项目」留下正式审查文件，也可下载 CSV 备份。</span></p>
+      <div class="backup"><label class="import-label">导入之前导出的审查 CSV <input id="import" type="file" accept=".csv,text/csv"></label><span id="save-status" aria-live="polite"></span></div>
+    </main>
+  </div>
+  <script id="review-data" type="application/json">__REVIEW_DATA__</script>
+  <script src="app.js"></script>
+</body>
+</html>
