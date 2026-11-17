@@ -41,6 +41,7 @@ def main() -> None:
         pending = read(folder / "pending_pass_additions.json")
         ignore = read(folder / "ignore_intervals.json")
         corrections = read(folder / "time_corrections.json")
+        drive_proxies = read(folder / "drive_proxy_events.json") if "drive_proxy_events.json" in fold["output_sha256"] else []
         for filename, expected in fold["output_sha256"].items():
             assert digest(folder / filename) == expected, filename
         assert digest(frozen_folder / "train_gt_pass.json") == fold["frozen_train_gt_sha256"]
@@ -50,7 +51,8 @@ def main() -> None:
         assert train_ids.isdisjoint(test_ids)
         assert {event["video_id"] for event in train} == train_ids
         assert {event["video_id"] for event in test} == test_ids
-        assert {event["video_id"] for event in labels + excluded + pending + ignore} <= train_ids
+        assert {event["video_id"] for event in labels + excluded + pending + ignore + drive_proxies} <= train_ids
+        assert all(event["mapping_status"] == "provisional_receiver_proxy" for event in drive_proxies)
         original_ids = {event["event_id"] for event in train}
         output_ids = [event["event_id"] for event in labels + excluded]
         assert len(output_ids) == len(set(output_ids)) and set(output_ids) == original_ids
@@ -59,6 +61,7 @@ def main() -> None:
             ("original_bepro_pass", train), ("training_pass", labels),
             ("excluded_bepro_pass", excluded), ("pending_pass_additions", pending),
             ("time_corrections", corrections),
+            ("drive_proxy_events", drive_proxies),
         ):
             assert fold[key] == len(items), (fold["fold_id"], key)
         print(f"{fold['fold_id']}: {len(labels)} labels, {len(excluded)} excluded, "

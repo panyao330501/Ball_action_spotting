@@ -68,6 +68,10 @@ def main() -> None:
     if args.output_dir.exists():
         raise FileExistsError(f"拒绝覆盖训练标签版本：{args.output_dir}")
     config = json.loads(args.config.read_text(encoding="utf-8"))
+    ground_truth_path = Path(config["ground_truth_path"])
+    if sha256(ground_truth_path) != config["ground_truth_sha256"]:
+        raise ValueError("原始可评估 GT 哈希与冻结配置不一致")
+    all_gt = json.loads(ground_truth_path.read_text(encoding="utf-8"))
     frozen = json.loads((args.frozen_dir / "manifest.json").read_text(encoding="utf-8"))
     if frozen["config_sha256"] != sha256(args.config):
         raise ValueError("冻结分组与当前配置哈希不一致")
@@ -91,6 +95,11 @@ def main() -> None:
         if sha256(train_path) != frozen_fold["train_gt_sha256"] or sha256(test_path) != frozen_fold["test_gt_sha256"]:
             raise ValueError(f"冻结 GT 哈希不一致：{fold_id}")
         train_gt = json.loads(train_path.read_text(encoding="utf-8"))
+        drive_proxies = [
+            {"event_id": item["event_id"], "video_id": item["video_id"],
+             "source_time_sec": item["source_time_sec"], "mapping_status": item["mapping_status"]}
+            for item in all_gt if item["video_id"] in train_ids and item["label"] == "Drive"
+        ]
         if {item["video_id"] for item in train_gt} != train_ids:
             raise ValueError(f"训练 GT 含测试视频：{fold_id}")
         train_reviews = [row for row in reviews if row["video_id"] in train_ids]
@@ -165,13 +174,15 @@ def main() -> None:
             raise ValueError(f"训练 GT 计数不守恒：{fold_id}")
         if {item["video_id"] for item in labels + excluded + pending_additions + ignore} - train_ids:
             raise ValueError(f"训练产物包含测试视频：{fold_id}")
+        if {item["video_id"] for item in drive_proxies} - train_ids:
+            raise ValueError(f"接球避让清单包含测试视频：{fold_id}")
         fold_dir = args.output_dir / fold_id
         fold_dir.mkdir(parents=True)
         hashes = {}
         for name, items in (
             ("train_pass_events.json", labels), ("excluded_bepro_pass.json", excluded),
             ("pending_pass_additions.json", pending_additions), ("ignore_intervals.json", ignore),
-            ("time_corrections.json", corrections),
+            ("time_corrections.json", corrections), ("drive_proxy_events.json", drive_proxies),
         ):
             hashes[name] = save_json(fold_dir / name, items)
         results.append({
@@ -181,6 +192,7 @@ def main() -> None:
             "train_review_count": len(train_reviews), "original_bepro_pass": len(train_gt),
             "training_pass": len(labels), "excluded_bepro_pass": len(excluded),
             "time_corrections": len(corrections), "pending_pass_additions": len(pending_additions),
+            "drive_proxy_events": len(drive_proxies),
             "output_sha256": hashes,
         })
     manifest = {

@@ -28,7 +28,7 @@ def read(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def select_examples(labels, excluded, pending, proxy_by_id, seed: int, max_per_half: int | None):
+def select_examples(labels, excluded, pending, drive_proxies, proxy_by_id, seed: int, max_per_half: int | None):
     rng = random.Random(seed)
     examples = []
     for video_id in sorted({row["video_id"] for row in labels}):
@@ -40,6 +40,7 @@ def select_examples(labels, excluded, pending, proxy_by_id, seed: int, max_per_h
         forbidden = [row["training_time_sec"] for row in labels if row["video_id"] == video_id]
         forbidden += [row["bepro_time_sec"] for row in excluded if row["video_id"] == video_id]
         forbidden += [row["prediction_time_sec"] for row in pending if row["video_id"] == video_id]
+        forbidden += [row["source_time_sec"] for row in drive_proxies if row["video_id"] == video_id]
         negatives = []
         attempts = 0
         while len(negatives) < len(positives):
@@ -129,15 +130,16 @@ def main() -> None:
     labels = read(folder / "train_pass_events.json")
     excluded = read(folder / "excluded_bepro_pass.json")
     pending = read(folder / "pending_pass_additions.json")
+    drive_proxies = read(folder / "drive_proxy_events.json")
     train_ids = set(fold["train_video_ids"])
     test_ids = set(fold["test_video_ids"])
-    if train_ids & test_ids or {row["video_id"] for row in labels + excluded + pending} != train_ids:
+    if train_ids & test_ids or {row["video_id"] for row in labels + excluded + pending + drive_proxies} != train_ids:
         raise ValueError("训练/测试比赛隔离失败")
     proxy_manifest = read(args.proxy_manifest)
     proxy_by_id = {row["video_id"]: row for row in proxy_manifest["videos"] if row["video_id"] in train_ids}
     if set(proxy_by_id) != train_ids:
         raise ValueError("缺少训练比赛代理")
-    examples = select_examples(labels, excluded, pending, proxy_by_id, args.seed, args.max_per_half)
+    examples = select_examples(labels, excluded, pending, drive_proxies, proxy_by_id, args.seed, args.max_per_half)
     print(f"fold={args.fold_id} examples={len(examples)} positives={sum(x[2] for x in examples)}", flush=True)
     checkpoint_sha256 = sha256(args.initial_checkpoint)
     model = argus.load_model(args.initial_checkpoint, device="cuda:0", optimizer=None, loss=None)
@@ -178,6 +180,7 @@ def main() -> None:
         "seed": args.seed, "epochs": 30, "learning_rate": 1e-4, "weight_decay": 1e-3,
         "max_per_half": args.max_per_half, "positives": int(targets.sum().item()),
         "negatives": int(len(targets) - targets.sum().item()),
+        "drive_proxy_events_avoided": len(drive_proxies),
         "labels_manifest_sha256": sha256(args.labels_root / "manifest.json"),
         "proxy_manifest_sha256": sha256(args.proxy_manifest),
         "initial_checkpoint_sha256": checkpoint_sha256,
