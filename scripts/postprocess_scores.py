@@ -47,13 +47,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--gauss-sigma", type=float, default=3.0)
     parser.add_argument("--min-height", type=float, default=0.2)
     parser.add_argument("--min-distance-frames", type=int, default=15)
+    parser.add_argument("--fold-index", type=int, default=None,
+                        help="Use one saved raw fold instead of the ensemble; zero-based archive index")
     return parser.parse_args()
 
 
-def load_arrays(path: Path) -> tuple[np.ndarray, np.ndarray, tuple[str, ...]]:
+def load_arrays(path: Path, fold_index: int | None = None) -> tuple[np.ndarray, np.ndarray, tuple[str, ...]]:
     with np.load(path) as data:
         frame_indexes = data["frame_indexes"]
-        scores = data["ensemble_scores"]
+        if fold_index is None:
+            scores = data["ensemble_scores"]
+        else:
+            folds = data["fold_scores"]
+            if fold_index < 0 or fold_index >= folds.shape[1]:
+                raise ValueError(f"fold-index 越界：{fold_index}")
+            scores = folds[:, fold_index, :]
         labels = tuple(str(label) for label in data["class_names"].tolist())
     if frame_indexes.ndim != 1 or scores.ndim != 2 or scores.shape[0] != len(frame_indexes):
         raise ValueError("scores.npz 的帧索引或集成分数形状不合法")
@@ -83,12 +91,12 @@ def main() -> None:
     fps = float(inference_manifest["input"]["fps"])
     if fps <= 0:
         raise ValueError("推理 manifest 的 FPS 不合法")
-    frame_indexes, scores, labels = load_arrays(args.scores)
+    frame_indexes, scores, labels = load_arrays(args.scores, args.fold_index)
     parameters = {
         "gauss_sigma": args.gauss_sigma,
         "min_height": args.min_height,
         "min_distance_frames": args.min_distance_frames,
-        "input_score": "ensemble_scores",
+        "input_score": "ensemble_scores" if args.fold_index is None else f"fold_scores[:, {args.fold_index}, :]",
     }
 
     unsorted_events: list[dict[str, Any]] = []
