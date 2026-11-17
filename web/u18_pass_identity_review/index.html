@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>U18 Pass 事件身份与时间复核</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #101725; color: #f4f6fb; }
+    * { box-sizing: border-box; }
+    body { max-width: 1320px; margin: 0 auto; padding: 20px; }
+    header, .toolbar, .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    header { justify-content: space-between; }
+    h1 { font-size: 1.45rem; margin: 0 0 8px; }
+    p { color: #aebbd0; line-height: 1.5; }
+    .panel { background: #1a2638; border: 1px solid #34445d; border-radius: 12px; padding: 16px; margin-top: 14px; }
+    button, select, input, textarea { background: #263850; color: #fff; border: 1px solid #57708e; border-radius: 7px; padding: 8px 10px; font: inherit; }
+    button { cursor: pointer; }
+    button:hover { background: #345273; }
+    button.primary { background: #2875bb; }
+    button:disabled { opacity: .45; cursor: default; }
+    select, input { min-height: 38px; }
+    video { width: 100%; max-height: 75vh; background: #000; border-radius: 8px; margin: 12px 0; }
+    .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+    .fact { background: #23334a; border-radius: 7px; padding: 10px; }
+    .fact small { color: #aebbd0; display: block; }
+    label { display: flex; flex-direction: column; gap: 6px; min-width: 220px; flex: 1; }
+    textarea { width: 100%; min-height: 75px; resize: vertical; }
+    .hint { color: #f6c768; }
+    #status { color: #a9d6ff; }
+  </style>
+</head>
+<body>
+  <header>
+    <div><h1>U18 Pass 事件身份与准确时间</h1><p>优先核对 5 条距离最近 Bepro Pass 超过 3 秒的样本。最近事件只是时间提示，不能据此认定同一次动作。</p></div>
+    <button class="primary" id="export">导出审核 CSV</button>
+  </header>
+  <div class="panel toolbar">
+    <label>显示范围<select id="filter"><option value="P1">优先 5 条</option><option value="all">全部 17 条</option></select></label>
+    <label>选择事件<select id="chooser"></select></label>
+    <button id="previous">上一条</button><button id="next">下一条</button>
+    <span id="status"></span>
+  </div>
+  <main class="panel">
+    <div id="facts" class="facts"></div>
+    <video id="video" controls playsinline preload="metadata"></video>
+    <div class="row"><button id="back-frame">−1 帧</button><button id="forward-frame">+1 帧</button><button id="use-frame">把当前帧记为 Pass 时刻</button><span id="clock"></span></div>
+    <p class="hint">请判断画面中的 Pass 是否就是下方最近的 Bepro 事件。若是独立 Pass，选择“独立新 Pass”并点“把当前帧记为 Pass 时刻”；不确定时请选择“无法判断”。</p>
+    <div class="row">
+      <label>事件身份<select id="decision"><option value="">尚未判断</option><option value="same_nearest_gt">与最近 Bepro 是同一次 Pass</option><option value="separate_pass">独立新 Pass</option><option value="unclear">无法判断</option></select></label>
+      <label>实际 Pass 时间（半场秒）<input id="time" type="number" step="0.04" min="0" placeholder="逐帧选取"></label>
+      <label>25 FPS 零起始帧号<input id="frame" type="number" step="1" min="0" placeholder="逐帧选取"></label>
+    </div>
+    <label style="margin-top:12px">补充说明<textarea id="comment" placeholder="例如：最近 Bepro 是另一次传球；本次是头球传球"></textarea></label>
+  </main>
+  <script>
+    const $ = id => document.getElementById(id);
+    let rows = [], visible = [], current = 0, key = '';
+    const quote = value => '"' + String(value ?? '').replaceAll('"', '""') + '"';
+    function save() {
+      const answers = Object.fromEntries(rows.map(r => [r.review_id, {
+        identity_decision: r.identity_decision,
+        confirmed_pass_time_sec: r.confirmed_pass_time_sec,
+        confirmed_frame_index_25fps: r.confirmed_frame_index_25fps,
+        new_comment: r.new_comment
+      }]));
+      localStorage.setItem(key, JSON.stringify(answers));
+      updateStatus();
+    }
+    function updateStatus() {
+      const done = rows.filter(r => r.identity_decision).length;
+      const p1 = rows.filter(r => r.priority.startsWith('P1') && r.identity_decision).length;
+      $('status').textContent = `已完成优先 ${p1}/5；全部 ${done}/17`;
+    }
+    function filterRows() {
+      const chosen = visible[current]?.review_id;
+      visible = rows.filter(r => $('filter').value === 'all' || r.priority.startsWith('P1'));
+      current = Math.max(0, visible.findIndex(r => r.review_id === chosen));
+      $('chooser').replaceChildren(...visible.map((r, i) => {
+        const option = document.createElement('option'); option.value = i;
+        option.textContent = `${r.review_id} · ${r.video_id} · ${r.prediction_time_sec}s${r.identity_decision ? ' ✓' : ''}`;
+        return option;
+      }));
+      show();
+    }
+    function show() {
+      const r = visible[current]; if (!r) return;
+      $('chooser').value = current;
+      $('previous').disabled = current === 0;
+      $('next').disabled = current === visible.length - 1;
+      const facts = [
+        ['事件', r.review_id], ['视频', r.video_id], ['模型候选时刻', `${r.prediction_time_sec} 秒`],
+        ['最近 Bepro Pass', `${r.nearest_bepro_event_id} · ${r.nearest_bepro_time_sec} 秒`],
+        ['两者时间差', `${r.nearest_gap_sec} 秒`], ['原人工备注', r.human_prior_comment || '无']
+      ];
+      $('facts').replaceChildren(...facts.map(([label, value]) => {
+        const box = document.createElement('div'); box.className = 'fact';
+        const small = document.createElement('small'); small.textContent = label;
+        box.append(small, document.createTextNode(value)); return box;
+      }));
+      $('video').src = '/' + r.clip_path;
+      $('video').onloadedmetadata = () => { $('video').currentTime = Math.min(5, $('video').duration / 2); updateClock(); };
+      $('decision').value = r.identity_decision;
+      $('time').value = r.confirmed_pass_time_sec;
+      $('frame').value = r.confirmed_frame_index_25fps;
+      $('comment').value = r.new_comment;
+      updateClock();
+    }
+    function updateClock() {
+      const r = visible[current]; if (!r) return;
+      const absolute = Number(r.clip_start_sec) + $('video').currentTime;
+      $('clock').textContent = `当前半场 ${absolute.toFixed(3)} 秒 · 零起始帧 ${Math.round(absolute * 25)}`;
+    }
+    function edit(field, value) { visible[current][field] = value; save(); }
+    $('filter').onchange = filterRows;
+    $('chooser').onchange = () => { current = Number($('chooser').value); show(); };
+    $('previous').onclick = () => { if (current > 0) { current--; show(); } };
+    $('next').onclick = () => { if (current + 1 < visible.length) { current++; show(); } };
+    $('video').ontimeupdate = updateClock;
+    $('back-frame').onclick = () => { $('video').pause(); $('video').currentTime = Math.max(0, $('video').currentTime - 0.04); };
+    $('forward-frame').onclick = () => { $('video').pause(); $('video').currentTime = Math.min($('video').duration, $('video').currentTime + 0.04); };
+    $('use-frame').onclick = () => {
+      const seconds = Number(visible[current].clip_start_sec) + $('video').currentTime;
+      const frame = Math.round(seconds * 25);
+      $('time').value = (frame / 25).toFixed(3); $('frame').value = frame;
+      edit('confirmed_pass_time_sec', $('time').value);
+      edit('confirmed_frame_index_25fps', $('frame').value);
+    };
+    $('decision').onchange = () => { edit('identity_decision', $('decision').value); filterRows(); };
+    $('time').oninput = () => edit('confirmed_pass_time_sec', $('time').value);
+    $('frame').oninput = () => edit('confirmed_frame_index_25fps', $('frame').value);
+    $('comment').oninput = () => edit('new_comment', $('comment').value);
+    $('export').onclick = () => {
+      const fields = Object.keys(rows[0]);
+      const text = '\ufeff' + [fields.map(quote).join(','), ...rows.map(r => fields.map(f => quote(r[f])).join(','))].join('\r\n') + '\r\n';
+      const url = URL.createObjectURL(new Blob([text], {type: 'text/csv;charset=utf-8'}));
+      const a = document.createElement('a'); a.href = url; a.download = 'u18_pass_identity_reviewed.csv'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+    fetch('review_data.json').then(r => { if (!r.ok) throw Error('无法加载清单'); return r.json(); }).then(data => {
+      rows = data; key = 'u18-pass-identity-' + rows.map(r => r.review_id).join(',');
+      const answers = JSON.parse(localStorage.getItem(key) || '{}');
+      rows.forEach(r => Object.assign(r, answers[r.review_id] || {}));
+      filterRows(); updateStatus();
+    }).catch(err => { $('status').textContent = err.message; });
+  </script>
+</body>
+</html>
