@@ -172,6 +172,12 @@ def main() -> None:
         state["classifier.bias"][0].copy_(head.bias[0].detach().cpu())
     fold_dir = args.output_dir / "fold_0"
     fold_dir.mkdir(parents=True)
+    examples_path = args.output_dir / "training_examples.json"
+    examples_path.write_text(json.dumps([
+        {"video_id": video_id, "frame_index_25fps": center, "target_pass": target,
+         "positive_event_id": event_id}
+        for video_id, center, target, event_id in ordered
+    ], indent=2) + "\n", encoding="utf-8")
     output_path = fold_dir / "model-001-u18-pass-head.pth"
     torch.save(checkpoint, output_path)
     metadata = {
@@ -185,6 +191,7 @@ def main() -> None:
         "proxy_manifest_sha256": sha256(args.proxy_manifest),
         "initial_checkpoint_sha256": checkpoint_sha256,
         "output_checkpoint_sha256": sha256(output_path),
+        "training_examples_sha256": sha256(examples_path),
         "training_loss_final": float(loss.item()),
     }
     (args.output_dir / "manifest.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
