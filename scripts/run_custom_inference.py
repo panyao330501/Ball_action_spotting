@@ -56,6 +56,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--video", required=True, type=Path, help="25 FPS CFR inference proxy")
     parser.add_argument("--config", required=True, type=Path, help="Path to configs/poc_video.yaml")
     parser.add_argument("--weights-root", required=True, type=Path, help="Path to ball_action/experiments")
+    parser.add_argument("--experiment", default=FINAL_EXPERIMENT, help="Checkpoint experiment subdirectory")
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--start-sec", type=float, default=0.0)
     parser.add_argument("--end-sec", type=float, required=True, help="Exclusive end time in seconds")
@@ -103,8 +104,10 @@ def assert_input_contract(
         raise ValueError("视频 SHA-256 不匹配，拒绝推理")
 
 
-def checkpoint_path(weights_root: Path, fold: int) -> Path:
-    fold_dir = weights_root / FINAL_EXPERIMENT / f"fold_{fold}"
+def checkpoint_path(weights_root: Path, fold: int, experiment: str = FINAL_EXPERIMENT) -> Path:
+    if Path(experiment).name != experiment or experiment in {"", ".", ".."}:
+        raise ValueError("--experiment 必须是单个目录名")
+    fold_dir = weights_root / experiment / f"fold_{fold}"
     candidates = sorted(fold_dir.glob("*.pth"))
     if len(candidates) != 1:
         raise FileNotFoundError(f"fold {fold} 应恰有一个 .pth 文件，实际为 {len(candidates)}：{fold_dir}")
@@ -144,7 +147,7 @@ def main() -> None:
     if requested_end <= requested_start:
         raise ValueError("请求区间没有可用帧")
 
-    checkpoint_paths = [checkpoint_path(args.weights_root, fold) for fold in folds]
+    checkpoint_paths = [checkpoint_path(args.weights_root, fold, args.experiment) for fold in folds]
     predictors = [
         MultiDimStackerPredictor(path, device=args.device, tta=True)
         for path in checkpoint_paths
@@ -246,7 +249,7 @@ def main() -> None:
             ],
         },
         "model": {
-            "experiment": FINAL_EXPERIMENT,
+            "experiment": args.experiment,
             "fold_ids": folds,
             "checkpoint_paths": [str(path.resolve()) for path in checkpoint_paths],
             "checkpoint_sha256": [sha256_file(path) for path in checkpoint_paths],
