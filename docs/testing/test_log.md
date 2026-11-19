@@ -724,3 +724,17 @@ Git 提交：
 - 用户下载 CSV SHA-256 `afd1462b07fdc1c74ea3b8a61fc75ef5e3eb55de7005903b34c2faa129e5ddcb`；PowerShell 核对 17 行、17 唯一 ID、非人工字段变化 0；7 条 `same_nearest_gt`、10 条 `separate_pass`。备注将 `u18-review-002` 附近 Bepro 判为接球、`u18-train-025` 附近 Bepro 判为门将抱球。
 - `conda run -n ballspot-viz python scripts/prepare_u18_identity_training_v3.py ... --output artifacts/u18_pass_cv/20261119_training_labels_v3` 退出 0；逐行检查身份、帧号/秒数和片段时间、原 v2 哈希、冻结清单。A 轮 879 正例、5 校正、8 新增、3 总排除；B 轮 774 正例、2 校正、2 新增、5 总排除。两条非 Pass 最近 Bepro 仅在对应训练轮排除并保持负例避让。
 - `py_compile` 退出 0；独立 PowerShell 对两轮所有输出哈希、标签 ID 唯一性、训练视频范围及冻结测试 GT 哈希检查通过。Conda 的既有 OpenCL 临时文件提示不影响上述退出码。
+
+## 2026-11-19——T-U18-043 第三版 Slurm 训练及验证
+
+- 源码提交 `2b1e67d` 经 GitHub 在 chiron 快进；第三版标签与用户审核 CSV 单独 scp，远端重算全部标签文件及审核 CSV SHA-256 与 manifest 一致。Slurm 冒烟 `6932390` 完成，4 正/4 负，输出 30 epoch 和权重。
+- Slurm 正式训练 `6932391`、`6932392` 完成，分别 879/879 和 774/774 正/负例。原 fold 0 初始权重 SHA-256 `544440209aa8cfbfc0859f37756a3e753b0acf0adb78a63609e4d8f6a588eaa4`；输出权重 SHA-256 分别 `1eb0f056e1a8046fb47b67cca8a0906eb733bfffcdb7a5bf3ba077fff45583ac`、`8d890ed4cffe760333e2ef1591921f75b6cb94ed762fd62db5cea86eb3f07d7a`。CPU `torch.load` 对比两个状态字典，均只有 Pass 分类行变化，Drive 行和其他张量完全一致。
+- 取回训练 manifest 和样本清单，`verify_u18_pass_head_training.py` 退出 0，确认正例 ID、帧号、训练/测试视频隔离、负例距离已知训练事件最小 3.003/3.001 秒。未标注事件仍可能落入负例。
+- 留出推理 Slurm 作业 `6932393`～`6932396` 已提交并运行，尚待完整分数和复评。
+
+## 2026-11-19——T-U18-044 第三版留出推理与固定协议复评
+
+- 四段 Slurm 推理 `6932393`～`6932396` 完成；分别 scp 取回原始分数与 manifest，远端/本地 SHA-256 相同：浦和 H1 `3c36a147304220c9b7ccb5428260f0192b5d128f88e9341619f2b2a4ad08767a`、H2 `3d77812530ee143c6479470754eec35b086b86ca2ce8313331efb3a5f79e5640`，FC 东京 H1 `cd13e63f493734d16e13406e436e51c8ca6c91c38420c0ed2634da658f0aff46`、H2 `cb96894bca8f76dbb581cdbcaad14b24e7203eac67bbdd5b696565dba1df76a0`。
+- `verify_u18_pass_head_inference.py --experiment-suffix v3` 退出 0，四段分别 67858、77287、69090、75880 帧，代理、时间轴、分数结构与模型哈希通过；四段采用 `postprocess_scores.py --min-height 0` 和固定 sigma=3/距离 15 帧后处理并退出 0。
+- `compare_u18_pass_head.py --experiment-suffix v3 --output-dir artifacts/u18_pass_cv/20261119_head_comparison_v3` 退出 0；冻结测试 GT、模型与视频哈希检查通过，生成各容差指标和逐事件匹配表。独立 PowerShell 核对四张匹配 CSV 的 TP/FP/FN 和 SHA-256 与 JSON 一致。
+- ±1 秒阈值 0.2：浦和 777 GT、3324 Pass 峰、AP 0.19228170、P 0.252033、R 0.119691、TP/FP/FN 93/276/684、near 52/253、far 25/325；FC 东京 874 GT、3208 峰、AP 0.45301287、P 0.324600、R 0.836384、731/1521/143、near 224/260、far 268/309。第二版 AP 0.19228123/0.45301384，TP/FP/FN 与第三版两轮完全相同，不能宣称整场改善。
