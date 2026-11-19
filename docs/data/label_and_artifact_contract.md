@@ -246,6 +246,8 @@ artifacts/u18_evaluation/<run_id>/
 
 `artifacts/u18_pass_cv/20261117_pending_pass_identity_v2/` 是后续人工身份核对入口，不是训练标签：`identity_review.csv`、`review_data.json`、`index.html`、`manifest.json`。每行保留旧审查 `review_id`、预测半场时间和用户已确认视觉 Pass 的来源，列最近同视频可评估 Bepro Pass 的 ID、时间和差值、原遮挡片段相对路径与起始秒数。`nearest_bepro_event_id` 只是时间最近邻，**不**证明同一动作。人工另填 `identity_decision`（`same_nearest_gt`、`separate_pass`、`unclear`）、`confirmed_pass_time_sec`、`confirmed_frame_index_25fps` 和 `new_comment`；确认帧号为 25 FPS 零起始源视频帧。页面浏览器存储是草稿，正式结果须导出新的 CSV。清单初始 17 行全部空白，5 行 `P1_check_missing_event` 仅为超过 3 秒的先看提示；无人工确认前不得把它们自动加入训练或改写测试 GT。
 
+`20261119_training_labels_v3/` 使用完成的身份审核。`identity_updates.json` 保存旧事件人工校正前后时刻，`identity_additions.json` 保存独立 Pass（ID 为 `human-pass-<review_id>`，`bepro_time_sec=null`）；用户判为非 Pass 的相邻 Bepro 事件记入 `excluded_bepro_pass.json`，不重写冻结 GT。各轮仅含训练比赛审核，manifest 固定来源与输出 SHA-256。
+
 `review_site/` 是本地浏览器审查产物。片段从已遮挡 Bepro 动作文字的 25 FPS 推理代理截取，以 `source_time_sec` 为中心，前后各约 5 秒；页面显示的毫秒时间码由该数值重新计算，不依赖表格软件可能改写的 `source_timecode` 字符串。`manifest.json` 记录输入 CSV/代理哈希、源帧区间和片段哈希。页面的浏览器存储只是草稿；最终人工结果应导出为新的 `pass_review_cases_reviewed.csv`，保留原字段与 `algorithmic_status`，仅填写 `human_visibility`、`human_judgment`、`human_comment`。导出的结果不得反写原始 GT、模型预测或指标。
 
 `drive_review_site/` 使用同样的遮挡片段与页面交互，但输入为原始 50 行 `drive_mapping_audit.csv`，不改变 `event_id`、Bepro 代码或 GT 字段。页面的 `review_observation` 记录接球后画面动作类别，`review_mapping` 取 `accept`、`reject`、`unclear` 或尚未审查的 `unreviewed`，`review_comment` 可补充时间/遮挡原因；导出为独立的 `drive_mapping_audit_reviewed.csv`。这些是人工语义判断，不自动重算已报告的 provisional Drive 指标。

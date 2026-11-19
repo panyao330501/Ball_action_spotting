@@ -718,3 +718,9 @@ Git 提交：
 - 首次 `prepare_u18_pass_identity_queue.py` 输出 `20261117_pending_pass_identity_v1` 的 17 行 CSV，5 条最近 Bepro Pass 时间差超过 3 秒；随后扩充片段起始时间、哈希、逐帧页面和 JSON，另建 v2，不覆盖 v1。`conda run -n ballspot-viz python -m py_compile scripts/prepare_u18_pass_identity_queue.py` 与 v2 生成命令均退出 0；输入旧/新审查和冻结 GT SHA-256 在 manifest 固定，v2 CSV SHA-256 `7a0314ae65dc9201ef1c6389afda9103df7d802f9436fe2ef171f073c9dd83a7`。
 - 独立 PowerShell 核验 v2 的 CSV/JSON 各 17 行、5 条 P1、17 条人工输出字段均为空，17 个原遮挡片段均存在且生成器重算 SHA-256 与原片段清单一致；`identity_review.csv`、`review_data.json`、`index.html` 的 SHA-256 均与新 manifest 一致。提取网页内 JavaScript 后 `node --check` 退出 0。
 - 用 `serve_u18_eval_review.py --site-dir . --page artifacts/u18_pass_cv/20261117_pending_pass_identity_v2/index.html --port 8767` 临时启动本地服务，`Invoke-WebRequest` 页面 HTTP 200、JSON HTTP 200、片段 `Range: bytes=0-1023` HTTP 206 且恰 1024 字节。实际 IAB 浏览器显示默认 5 条、首条最近 GT 信息、视频与半场秒/帧号；点击“下一条”后 ID 与最近 GT 更新到下一条。测试后 Ctrl+C 停服务；一次 2 秒超时的 HTTP 结束检查因异常类型不匹配退出 1，随后 `Get-NetTCPConnection -LocalPort 8767 -State Listen` 显示 0 个监听，确认已停止。未填写任何用户审核答案。
+
+## 2026-11-19——T-U18-042 Pass 身份审核与第三版训练标签
+
+- 用户下载 CSV SHA-256 `afd1462b07fdc1c74ea3b8a61fc75ef5e3eb55de7005903b34c2faa129e5ddcb`；PowerShell 核对 17 行、17 唯一 ID、非人工字段变化 0；7 条 `same_nearest_gt`、10 条 `separate_pass`。备注将 `u18-review-002` 附近 Bepro 判为接球、`u18-train-025` 附近 Bepro 判为门将抱球。
+- `conda run -n ballspot-viz python scripts/prepare_u18_identity_training_v3.py ... --output artifacts/u18_pass_cv/20261119_training_labels_v3` 退出 0；逐行检查身份、帧号/秒数和片段时间、原 v2 哈希、冻结清单。A 轮 879 正例、5 校正、8 新增、3 总排除；B 轮 774 正例、2 校正、2 新增、5 总排除。两条非 Pass 最近 Bepro 仅在对应训练轮排除并保持负例避让。
+- `py_compile` 退出 0；独立 PowerShell 对两轮所有输出哈希、标签 ID 唯一性、训练视频范围及冻结测试 GT 哈希检查通过。Conda 的既有 OpenCL 临时文件提示不影响上述退出码。
