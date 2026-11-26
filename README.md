@@ -17,6 +17,8 @@
 
 输入视频、模型权重、预测结果和生成视频均被有意排除在 Git 之外。
 
+面向集成使用的当前 BAS 代码、配置、模型校验清单、评估脚本及英文运行说明已发布到 [TactiFlow/Football_BAS_Pipeline](https://github.com/TactiFlow/Football_BAS_Pipeline)。基线权重从作者公开目录获取；两份 Pass 头第三版权重位于 `chiron`，按目标仓库 README 的路径与 SHA-256 另行获取。
+
 当前步骤还提供两项本地 CPU 工具：
 
 - `scripts/generate_miss_candidates.py`：从保留的全程稠密分数生成低阈值/fold 分歧漏检候选，可选融合标准化 tracking 候选。

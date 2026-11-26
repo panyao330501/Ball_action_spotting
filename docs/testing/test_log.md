@@ -738,3 +738,10 @@ Git 提交：
 - `verify_u18_pass_head_inference.py --experiment-suffix v3` 退出 0，四段分别 67858、77287、69090、75880 帧，代理、时间轴、分数结构与模型哈希通过；四段采用 `postprocess_scores.py --min-height 0` 和固定 sigma=3/距离 15 帧后处理并退出 0。
 - `compare_u18_pass_head.py --experiment-suffix v3 --output-dir artifacts/u18_pass_cv/20261119_head_comparison_v3` 退出 0；冻结测试 GT、模型与视频哈希检查通过，生成各容差指标和逐事件匹配表。独立 PowerShell 核对四张匹配 CSV 的 TP/FP/FN 和 SHA-256 与 JSON 一致。
 - ±1 秒阈值 0.2：浦和 777 GT、3324 Pass 峰、AP 0.19228170、P 0.252033、R 0.119691、TP/FP/FN 93/276/684、near 52/253、far 25/325；FC 东京 874 GT、3208 峰、AP 0.45301287、P 0.324600、R 0.836384、731/1521/143、near 224/260、far 268/309。第二版 AP 0.19228123/0.45301384，TP/FP/FN 与第三版两轮完全相同，不能宣称整场改善。
+
+## 2026-11-26——T-U18-045 独立 BAS 仓库发布核验
+
+- `git ls-remote` 确认目标 `TactiFlow/Football_BAS_Pipeline` 发布前为空；本地克隆位于主仓库忽略的 `outputs/Football_BAS_Pipeline/`。加入 59 个代码、配置、文档和测试文件；`git diff --cached --check` 无输出；暂存路径扫描无 `.pth`、媒体、`data/` 或 `artifacts/`。密钥模式扫描无匹配。`git push -u origin main` 退出 0；推送后 `git ls-remote origin refs/heads/main` 与本地 `git rev-parse HEAD` 均为 `34b55df3e4b8f7da555d57faf5f9a8e8ca290e72`，工作树干净。
+- 两份第三版 Pass 头权重由 `chiron` 单独 `scp` 取回到 Git 忽略的 `weights/`；独立 `scripts/verify_checkpoints.py` 按 `models/checkpoints.json` 对 A/B 两份均输出 `OK`，SHA-256 与 T-U18-043 相同。`bash -n` 对两个新 Slurm 包装器退出 0，30 个 Python 脚本逐个 AST 解析通过。复制到独立仓库的评估器读取原冻结 GT 与四段基线事件，重算 Pass GT 1651、6188 峰、TP/FP/FN 322/375/1329、AP@1s 0.3397847645、P 0.4619799139、R 0.1950333131，与 T-U18-031 记录一致。
+- 失败记录：并行 `conda run` 的两条验证命令因 Conda 临时文件冲突退出 1；改用既有 `ballspot-viz` 环境 Python。`compileall` 对 `scripts/__pycache__` 写入遭沙箱拒绝而退出 1，改用无写入的 AST 解析通过。两次 `pytest` 均输出 9 个通过标记但进程未退出，手动中断返回 1，因此不宣称该次 pytest 完整通过。首次 `bash -n` 因新脚本参数提示中的撇号解析失败，修订后通过。首次评估读回使用错误键 `1.0` 导致 `KeyError`，改用评估器实际键 `1` 后通过。
+- 权重上传到既有 BAS Drive 文件夹被自动审批拒绝：该文件夹有 `anyone:reader` 权限，审批认为用户未指定向此公开位置上传 53 MB 模型。未重试或改用旁路；仓库 README 仅提供 `chiron` 路径，未声称 Drive 文件存在。
